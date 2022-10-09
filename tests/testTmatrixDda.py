@@ -1,14 +1,14 @@
-import pytest
-from pytweezer.shapes import Sphere
+#import pytest
+#from pytweezer.shapes import Sphere
 
-def testSphere():
-  
-  abs_tol = 1.0e-4
-  rel_tol = 3.0e-2
-  
-  wavelength0 = 1.0e-6
+#def testSphere():
+#  
+#  abs_tol = 1.0e-4
+#  rel_tol = 3.0e-2
+#  
+ # wavelength0 = 1.0e-6
 
-  shape = Sphere(0.2*wavelength0);
+#  shape = Sphere(0.2*wavelength0);
 
 
 '''
