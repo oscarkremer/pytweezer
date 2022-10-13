@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import block_diag
 
 def wigner_rotation_matrix(nmax, R):
     '''    % WIGNER_ROTATION_MATRIX rotation matrix for rotation of spherical
@@ -18,84 +19,36 @@ def wigner_rotation_matrix(nmax, R):
     '''
     assert isinstance(nmax, float) or isinstance(nmax, int), 'Nmax must be a numeric scalar'
     assert isinstance(R, np.ndarray) and R.shape == (3,3), 'R must be a 3x3 rotation matrix'
-
-#    ott.warning('internal');
-
-    #   % Transform cartesian rotation matrix to spinor(?) rotation matrix
-    #%
-    #% Note that the order n = 1 scalar spherical harmonics are equal to
-    #% orthogonal spinor vectors
-    #% e+ = -exp(i*phi) sin(theta) / sqrt(2) = ( - x - iy )/sqrt(2)/r
-    #% e- = exp(-i*phi) sin(theta) / sqrt(2) = ( x - iy )/sqrt(2)/r
-    #% e0 = cos(theta) = z/r
-
-    #% So, to transform cartesian coords to spinor coords,
-    #% s = x C / r
-
-    #% C = [  1/sqrt(2) 0 -1/sqrt(2);
-    #%       -i/sqrt(2) 0 -i/sqrt(2);
-    #%        0         1  0 ];
-    #% invC = [ 1/sqrt(2) i/sqrt(2) 0;
-    #%          0         0         1;
-    #%         -1/sqrt(2) i/sqrt(2) 0 ];
-
     C = np.array([[1/np.sqrt(2), 0, -1/np.sqrt(2)],
-        [1j/np.sqrt(2), 0, 1j/sqrt(2)],
+        [1j/np.sqrt(2), 0, 1j/np.sqrt(2)],
         [0, 1, 0]])
-    invC = [ 1/sqrt(2) -1i/sqrt(2) 0;
-            0         0         1;
-            -1/sqrt(2) -1i/sqrt(2) 0 ];
+    invC = np.array([[1/np.sqrt(2), -1j/np.sqrt(2), 0],
+                    [0, 0, 1],
+                    [-1/np.sqrt(2), -1j/np.sqrt(2), 0]])
+    D = np.matmul(invC, np.matmul(R, C))
+    D1 = D.T
+    DD = D1.copy()
+    X = [D1]
+    for i in range(2, nmax+1):
 
-    % Since x' = x R, s' -> x' C = s invC R C -> s' = s (invC R C)
-
-    D = invC * R * C;
-
-    % This is also the rotation sub-matrix for n = 1
-    % Although, since we store spherical harmonic coeffs as column vectors,
-    D1 = D.';
-    DD = D1;
-
-    X = {};
-    X{1} = sparse(D1);
-
-    for n = 2:nmax
-
-        DDD = complex(zeros(2*n+1));
-
-        % Fill in whole block except for top and bottom row
-
-        m0 = ones(2*n-1,1) * (-n:n);
-        m1 = ((-n+1):(n-1)).' * ones(1,2*n+1);
-        a = sqrt( (n+m0) .* (n-m0) ./ ( (n+m1) .* (n-m1) ) );
-        b = sqrt( (n+m0) .* (n+m0-1) ./ ( 2*(n+m1) .* (n-m1) ) );
-
-        DDD(2:end-1,2:end-1) = D1(2,2) * a(:,2:end-1) .* DD;
-        DDD(2:end-1,3:end) = DDD(2:end-1,3:end) + D1(2,3) * b(:,3:end) .* DD;
-        DDD(2:end-1,1:end-2) = DDD(2:end-1,1:end-2) + D1(2,1) * fliplr(b(:,3:end)) .* DD;
-
-        % Top row
-
-        m0 = (-n:n);
-        c = sqrt( (n+m0).*(n-m0)/(n*(2*n-1)) );
-        d = sqrt( (n+m0).*(n+m0-1)/(2*n*(2*n-1)) );
-
-        DDD(1,2:end-1) = D1(1,2) * c(2:end-1) .* DD(1,:);
-        DDD(1,3:end) = DDD(1,3:end) + D1(1,3) * d(3:end) .* DD(1,:);
-        DDD(1,1:end-2) = DDD(1,1:end-2) + D1(1,1) * fliplr(d(3:end)) .* DD(1,:);
-
-        % Bottom row
-
-        DDD(end,2:end-1) = D1(3,2) * c(2:end-1) .* DD(end,:);
-        DDD(end,3:end) = DDD(end,3:end) + D1(3,3) * d(3:end) .* DD(end,:);
-        DDD(end,1:end-2) = DDD(end,1:end-2) + D1(3,1) * fliplr(d(3:end)) .* DD(end,:);
-
-        X{end+1} = DDD;
-
-        DD = DDD;
-
-    end
-
-    D = blkdiag(X{:});
-
-    ott.warning('external');
-
+        DDD = 0j + np.zeros((2*i+1, 2*i+1))
+        m0 = np.matmul(np.ones((2*i-1,1)), np.arange(-i, i+1).reshape((1, -1)))
+        m1 = np.arange(-i+1, i).reshape((-1, 1))*np.ones((1, 2*i+1))
+        a = np.sqrt((i + m0)*(i - m0)/((i + m1)*(i - m1)))
+        b = np.sqrt((i + m0)*(i + m0 - 1)/( 2*(i + m1)*(i - m1)))
+        DDD[1:-1, 1:-1] = D1[1, 1] * a[:, 1:-1]*DD
+        DDD[1:-1, 2:] = DDD[1:-1, 2:] + D1[1,2] * b[:,2:]*DD
+        DDD[1:-1, :-2] = DDD[1:-1,:-2] + D1[1,0]*np.fliplr(b[:, 2:])*DD
+        m0 = np.arange(-i, i+1).reshape((1, -1))
+        c = np.sqrt((i + m0)*(i - m0)/(i*(2*i - 1)))
+        d = np.sqrt((i + m0)*(i + m0 - 1)/(2*i*(2*i - 1)))
+        DDD[0, 1:-1] = D1[0, 1]*c[0, 1:-1]*DD[0,:]
+        DDD[0, 2:] = DDD[0,2:] + D1[0,2]*d[:, 2:]*DD[0,:]
+        DDD[0, :-2] = DDD[0, :-2] + D1[0, 0] * np.fliplr(d[:, 2:])*DD[0, :]  
+        DDD[-1, 1:-1] = D1[2, 1] * c[:, 1:-1] * DD[-1, :]
+        DDD[-1, 2:] = DDD[-1, 2:] + D1[2,2] * d[:, 2:]*DD[-1, :]
+        DDD[-1,:-2] = DDD[-1,:-2] + D1[2,0] * np.fliplr(d[:, 2:]) * DD[-1, :]
+        DD = DDD
+        X.append(DDD)        
+    D = block_diag(*X)
+    return D
