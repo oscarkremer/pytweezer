@@ -21,6 +21,7 @@ def combined_index(in1, in2=None):
     if not in2:
         out1 = np.floor(np.sqrt(in1))
         out2 = in1 - np.power(out1, 2) - out1
+        return out1, out2
     else:
-        out1 = in1*(in1 + 1) + in2    
+        return in1*(in1 + 1) + in2    
     

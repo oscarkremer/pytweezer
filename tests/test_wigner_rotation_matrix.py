@@ -1,31 +1,26 @@
 import numpy as np
-from pytweezer.utils import wigner_rotation_matrix
+from pytweezer.utils import combined_index, wigner_rotation_matrix
 from pytweezer.utils.rotations import rotx, rotz
 
 def test_wigner_rotation_matrix_eye():
     decimal = 3
 
-    val = wigner_rotation_matrix(1, np.eye(3)0
-    np.testing.assert_array_almost_equal(val, np.eye(3), decimal=decimal, err_msg='Error in the 3x3 matrix')
-    np.testing.assert_array_almost_equal(val[3:8, 3:8], n2, decimal=decimal, err_msg='Error in the 5x5 matrix')
-    np.testing.assert_array_almost_equal(val[8:, 8:], n3, decimal=decimal, err_msg='Error in the final block matrix')
-
-
+    val = wigner_rotation_matrix(1, np.eye(3))
+    np.testing.assert_array_almost_equal(val, np.eye(3), decimal=decimal, err_msg='Error in the 3x3 eye matrix')
+    
     #% Test Nmax = 2
     Nmax = 2
-    val = ott.utils.wigner_rotation_matrix(Nmax, eye(3));
-    numVals = ott.utils.combined_index(Nmax, Nmax);
-    testCase.verifyThat(val, IsEqualTo(speye(numVals), ...
-        'Within', AbsoluteTolerance(tol)), ...
-        'Incorrect results for Nmax=2 R=eye(3)');
+    val = wigner_rotation_matrix(Nmax, np.eye(3))
+    num_vals = combined_index(Nmax, Nmax)
+    np.testing.assert_array_almost_equal(val, np.eye(num_vals), decimal=decimal, err_msg='Error in the 8x8 eye matrix')
+
 
     #% Test Nmax = 20
     Nmax = 20
-    val = ott.utils.wigner_rotation_matrix(Nmax, eye(3));
-    numVals = ott.utils.combined_index(Nmax, Nmax);
-    testCase.verifyThat(val, IsEqualTo(speye(numVals), ...
-        'Within', AbsoluteTolerance(tol)), ...
-        'Incorrect results for Nmax=200 R=eye(3)');
+    val = wigner_rotation_matrix(Nmax, np.eye(3))
+    num_vals = combined_index(Nmax, Nmax)
+    np.testing.assert_array_almost_equal(val, np.eye(num_vals), decimal=decimal, err_msg='Error in the 8x8 eye matrix')
+
 
 def test_wigner_rotation_matrix():
 
