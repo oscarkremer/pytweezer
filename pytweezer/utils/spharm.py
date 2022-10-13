@@ -1,25 +1,26 @@
-function [Y,Ytheta,Yphi] = spharm(n,m,theta,phi)
-% SPHARM scalar spherical harmonics and angular partial derivatives.
-%
-% Y = SPHARM(n,m,theta,phi) calculates scalar spherical harmonics.
-%
-% [Y,Ytheta,Yphi] = SPHARM(n,m,theta,phi) additionally, calculates
-% the angular partial derivatives dY/dtheta and 1/sin(theta)*dY/dphi.
-%
-% SPHARM(n,theta,phi) as above but for all m.
-%
-% Scalar n for the moment.
-% 
-% If scalar m is used Y is a vector of length(theta,phi) and is
-% completely compatible with previous versions of the toolbox. If vector m
-% is present the output will be a matrix with rows of length(theta,phi) for
-% m columns.
-%
-% "Out of range" n and m result in return of Y = 0
+def spharm(n, m, theta, phi=None):
+    '''
+    % SPHARM scalar spherical harmonics and angular partial derivatives.
+    %
+    % Y = SPHARM(n,m,theta,phi) calculates scalar spherical harmonics.
+    %
+    % [Y,Ytheta,Yphi] = SPHARM(n,m,theta,phi) additionally, calculates
+    % the angular partial derivatives dY/dtheta and 1/sin(theta)*dY/dphi.
+    %
+    % SPHARM(n,theta,phi) as above but for all m.
+    %
+    % Scalar n for the moment.
+    % 
+    % If scalar m is used Y is a vector of length(theta,phi) and is
+    % completely compatible with previous versions of the toolbox. If vector m
+    % is present the output will be a matrix with rows of length(theta,phi) for
+    % m columns.
+    %
+    % "Out of range" n and m result in return of Y = 0
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
-
+    % This file is part of the optical tweezers toolbox.
+    % See LICENSE.md for information about using/distributing this file.
+    '''
 import ott.utils.*
 
 ott.warning('internal');
@@ -129,3 +130,4 @@ Yphi=Yphi(n+mi+1,:).';
 Ytheta=Ytheta(n+mi+1,:).';
 
 ott.warning('external');
+    return Y, Ytheta, Yphi
