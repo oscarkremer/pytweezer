@@ -40,13 +40,20 @@ def test_lattice_dispersion_relation_polarizability():
     expected = np.array([[0], [-0.002627924391542 + 0.004518926661470j]])
     np.testing.assert_array_almost_equal(alpha, expected, decimal=decimal, err_msg='Lattice Dispersion Relation Polarizability Error')
 
-
-def test_lattice_dispersion_relation_args():
+@pytest.mark.parametrize(
+    ('spacing', 'index', 'kvec', 'E'),
+    (
+        pytest.param(1.0, [1, 2], np.array([1, 0, 1]), np.array([1, 0, 1]), id='List index test'),
+        pytest.param(1.0, np.array([1, 2]), np.array([1, 0, 1]), np.array([1, 1]), id='Mismatch dimensions, case E'),
+        pytest.param(1.0, np.array([1, 2]), np.array([1, 1]), np.array([1, 0, 1]), id='Mismatch dimensions, case kvec'),
+    )
+)
+def test_lattice_dispersion_relation_args(spacing, index, kvec, E):
     decimal = 3
-    spacing = 1.0;
-    index = np.array([1, 2])
-    kvec = np.array([0, 0, 1])
-    E = np.array([1, 0])
-    with pytest.raises(ValueError):
-        alpha = lattice_dispersion_relation(spacing, index, kvec=kvec, E=E, k=2*np.pi)
+    if not isinstance(index, np.ndarray):
+        with pytest.raises(TypeError):
+            alpha = lattice_dispersion_relation(spacing, index, kvec=kvec, E=E, k=2*np.pi)
+    else:
+        with pytest.raises(ValueError):
+            alpha = lattice_dispersion_relation(spacing, index, kvec=kvec, E=E, k=2*np.pi)
     
