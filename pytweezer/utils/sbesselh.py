@@ -1,7 +1,7 @@
 from scipy.special import hankel1, hankel2
 
 
-def spherical_hankel(kr, n, htype):
+def sbesselh(kr, n, htype):
     '''    % SBESSELH spherical hankel function hn(kr) of the first or 
     % second kind hn(kr) = sqrt(pi/2kr) Hn+0.5(kr)
     %
@@ -24,9 +24,9 @@ def spherical_hankel(kr, n, htype):
     n=n.T
 
     n, kr=np.meshgrid(n, kr)
-    if htype='1':
+    if htype == '1':
         hn = hankel1(n+1/2, kr)
-    elif htype='2':
+    elif htype == '2':
         hn = hankel2(n+1/2, kr)    
     hn = np.sqrt(np.pi/(2*kr)) * (hn)
 
