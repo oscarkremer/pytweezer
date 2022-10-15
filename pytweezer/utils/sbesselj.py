@@ -25,8 +25,8 @@ def sbesselj(n, kr, verbose=False):
 
     n, kr = np.meshgrid(n, kr)
     jn = jv(n+1/2, kr)
-    small_args = np.argwhere(np.abs(kr) < 1e-10)
-    not_small_args = np.argwhere(np.abs(kr) > 1e-10)
+    small_args = np.argwhere(np.abs(kr) < 1e-15)
+    not_small_args = np.argwhere(np.abs(kr) > 1e-15)
 
     if (isinstance(kr, float) or isinstance(kr, int)) and abs(kr) < 1e-15:
         if verbose:

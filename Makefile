@@ -21,7 +21,10 @@ test_environment: ##Run verification step for requisites
 
 update: ##Update method to change dependences.
 	@echo "---> Updating dependencies"
-	@conda env update -q -f environment.yml
+	@conda env update -q -f enviroenment.yml
+
+set:
+	@python setup.py install
 
 
 dirs:	## Make command to create folder for results dataframes.
@@ -30,6 +33,8 @@ dirs:	## Make command to create folder for results dataframes.
 	@mkdir -p data/logs
 	@echo "----> Done"
 
+test:
+	@coverage run -m pytest tests/ -v
 
 grid-search: ##Method to grid-search between all classification and oversampling algorithms
 	@echo "---> Running Grid Search on dataset"

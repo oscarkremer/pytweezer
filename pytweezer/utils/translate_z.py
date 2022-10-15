@@ -1,6 +1,6 @@
 import warnings
 import numpy as np
-from pytweezer.utils import *
+from pytweezer.utils import sbesselj
 
 def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
     #TODO docstirng
@@ -164,35 +164,26 @@ def calculate_AB(C, nmax1, nmax2, nmax, z, p):
     #    % OK, that's the scalar coefficients
     #% Time to find the vector coefficients - Videen (43) & (44)
 
-#    nn = np.arangge(1, nmax1+1)
-#    kk = np.arange((1, nmax2+1).T
-#    print(nn, kk) 
-    print('here')
-'''    
-matrixm=sqrt(kk.*(kk+1)) ./ sqrt(nn.*(nn+1));
+    nn = np.arange(1, nmax1+1)
+    kk = np.arange(1, nmax2+1).reshape((1,-1)).T
+    matrixm = np.sqrt(kk*(kk+1))/np.sqrt(nn*(nn+1))
 
-central_iterator1=[1:nmax1].*[2:nmax1+1];
-central_iterator2=[1:nmax2].*[2:nmax2+1];
+    central_iterator1 = np.arange(1, nmax1+1)*np.arange(2, nmax1+2)
+    central_iterator2 = np.arange(1, nmax2+1)*np.arange(2, nmax2+2)
+    ciy,cix = np.meshgrid(central_iterator1,central_iterator2);
 
-[ciy,cix]=meshgrid(central_iterator1,central_iterator2);
+    mmm = 0
+    C0 = C[1:(nmax2+1), 1:(nmax1+1), mmm]
+    Cp = C[2:(nmax2+2), 1:(nmax1+1), mmm]
+    Cm = C[:nmax2, 1:(nmax1+1), mmm]
+    t = matrixm*(C0 - 2*np.pi*np.abs(z)/(kk+1)*np.sqrt((kk-mmm+1)*(kk+mmm+1)/((2*kk+1)*(2*kk+3)))*Cp - 2*np.pi*np.abs(z)/kk*np.sqrt((kk-mmm)*(kk+mmm)/((2*kk+1)*(2*kk-1)))*Cm)
+    toIndexy=(ciy(:));
+    toIndexx=(cix(:));
+    A=t(:);
+    B=zeros(size(A));
 
-mmm=0;
 
-C0 = C(2:(nmax2+1),2:(nmax1+1),mmm+1);
-Cp = C(3:(nmax2+2),2:(nmax1+1),mmm+1);
-Cm = C(1:nmax2,2:(nmax1+1),mmm+1);
-
-t = matrixm.*(C0 - 2*pi*abs(z)./(kk+1) .* ...
-    sqrt((kk-mmm+1).*(kk+mmm+1)./((2*kk+1).*(2*kk+3))) .* Cp - ...
-    2*pi*abs(z)./kk.*sqrt((kk-mmm).*(kk+mmm)./((2*kk+1).*(2*kk-1))).*Cm);
-
-toIndexy=(ciy(:));
-toIndexx=(cix(:));
-A=t(:);
-B=zeros(size(A));
-
-% Total size of A and B: sum((1:nmax).^2)*2 + nmax^2
-
+'''
 for mmm=1:min(nmax1, nmax2)
 
     sz1 = mmm:nmax2;
@@ -243,77 +234,66 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
     fval = 2*nmax+1
     nd = np.arange(m, fval+1)
     kr=2*np.pi*r
-    #%compute seed functions:
-
     if function_type not in ('sbesselj', 'sbesselh1', 'sbesselh2'):
         raise ValueError('Unknown value for function_type parameter, allowed values are: \
             (\'sbesselj\', \'sbesselh1\', \'sbesselh2\')')
     elif function_type == 'sbesselj':
-        C_nd00=[np.sqrt(2*nd+1)*sbesselj(nd,kr)]
+        jn, _ = sbesselj(nd,kr) 
+        C_nd00 = np.sqrt(2*nd+1)*jn
     elif function_type == 'sbesselh1':
         C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd,kr, htype='1')]/2
     elif function_type == 'sbesselh2':
         C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd, kr, htype='2')]/2
+    C_ndn0 = np.zeros((nd.size + 1, nd.size + 1))
+    C_ndn0[1:C_nd00.size+1,1] = C_nd00
+    C_ndn0[1,1:C_nd00.size+1] = (-1)**(nd)*C_nd00
+    for j in range(1, nmax+1):
+        i = np.arange(j, fval-j+1)
+        num = anm_l(i[0]-2,0)*C_ndn0[i+1, i[0]-1]-anm_l(i,0)*C_ndn0[i+2, i[0]] + anm_l(i-1,0)*C_ndn0[i, i[0]]
+        C_ndn0[i+1, i[0]+1] = num/anm_l(i[0]-1,0)
 
-    #    C_ndn0=zeros(length(nd)+1,length(nd)+1);
-    #C_ndn0(1+[1:length(C_nd00)],2)=C_nd00;
-    #C_ndn0(2,1+[1:length(C_nd00)])=((-1).^(nd).*C_nd00).';
+        C_ndn0[i[0]+1, i+1] = (-1)**(j+i)*C_ndn0[i+1, i[0]+1]
+    C = np.zeros((nmax2+2, nmax1+1, mmax+1))
+    C[:, :, 0] = C_ndn0[1:(nmax2+3), 1:(nmax1+2)]
+    ANM = anm_l(np.arange(0, 2*nmax+2).reshape((1, -1)).T,np.arange(1, nmax+1))
+    IANM = 1/ANM
+    for m in range(1, mmax+1):
+        nd = np.arange(m, fval-m+1)
+        C_nd1m = (bnm_l(nd, -m)*C_ndn0[nd, m]-bnm_l(nd+1, m-1)*C_ndn0[nd+2, m])/bnm_l(m, -m)
+        C_ndn1 = np.zeros(C_ndn0.shape)
+        C_ndn1[m+1:C_nd1m.size+m+1, m+1] = C_nd1m
 
-#    %gumerov's zonal coefficients are m=0. Compute columns, limited by diagonal:
-#    %compute lower diagonal first:
-#    for jj=1:nmax
-#        ii=[jj:fval-jj].';
-#        C_ndn0(ii+2,ii(1)+2)=(anm_l(ii(1)-2,0).*C_ndn0(ii+2,ii(1))-anm_l(ii,0).*C_ndn0(ii+3,ii(1)+1)+anm_l(ii-1,0).*C_ndn0(ii+1,ii(1)+1))./anm_l(ii(1)-1,0);
-#        C_ndn0(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn0(ii+2,ii(1)+2)).';
-#    end
+        C_ndn1[m+1, m+1:C_nd1m.size+m+1] = (-1)**(nd+m)*C_nd1m
 
- #   %create "C":
- #   C=zeros(nmax2+2,nmax1+1,mmax+1);
- #   C(:,:,1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
+        for j in range(m+1, nmax+1):
+            i= np.arange(j, fval-j+1)
+            sub_expression = ANM[i[0]-2, m-1]*C_ndn1[i+1, i[0]-1]-ANM[i,m-1]*C_ndn1[i+2,i[0]]+ANM[i-1,m-1]*C_ndn1[i,i[0]]
+            C_ndn1[i+1, i[0]+1]= sub_expression*IANM[i[0], m]
+            C_ndn1[i[0]+1, i+1] = (-1)**(j+i)*C_ndn1[i+1,i[0]+1]
+        C_ndn0=C_ndn1
+        C[:,:,m] = C_ndn0[1:nmax2+3, 1:nmax1+2]
+    return C
 
-  #  %Having computed anm for m=0; cases we now can compute anm for all
-  #  %remaining cases:
-   # ANM=anm_l([0:2*nmax+1].',[1:nmax]);
-   # IANM=1./ANM;
-   # for m=1:mmax
 
-    #    %having computed the zonal coefficients we now compute the "diagonal ones"
-    #    %(tesseral)
-    #    %i.e. ones which generate m on the first column we then reproduce the same
-     #   %commputation for the n nd recursion:
-#        nd=[m:fval-m].';
-#        C_nd1m=(bnm_l(nd,-m).*C_ndn0(nd+1,m+1)-bnm_l(nd+1,m-1).*C_ndn0(nd+3,m+1))./bnm_l(m,(-m));
 
- #       %having computed the first seed column we now recur the elements:
- #       C_ndn1=zeros(size(C_ndn0)); %make zero as we re-use
- #       C_ndn1([1:length(C_nd1m)]+m+1,m+2)=C_nd1m;
-  #      C_ndn1(m+2,[1:length(C_nd1m)]+m+1)=((-1).^(nd+m).*C_nd1m).';
+def anm_l(n, m):
+    fn = 1/(2*n+1)/(2*n+3)
+    a_nm = np.sqrt((n+np.abs(m)+1)*(n-np.abs(m)+1)*fn)
+    smaller_than_zero = np.argwhere(n < 0)
+    if smaller_than_zero.size:
+        smaller_than_zero = tuple(smaller_than_zero.T)
+        a_nm[np.argwhere(n < 0)] = 0
+    m_bigger_n = np.argwhere(np.abs(m) > n)
+    if m_bigger_n.size:
+        m_bigger_n = tuple(m_bigger_n.T)
+        a_nm[m_bigger_n] = 0
+    return a_nm
 
-    #    for jj=m+1:nmax
-  ##          ii=[jj:fval-jj].';
-    #%         C_ndn1(ii+2,ii(1)+2)=(anm(ii(1)-2,m).*C_ndn1(ii+2,ii(1))-anm(ii,m).*C_ndn1(ii+3,ii(1)+1)+anm(ii-1,m).*C_ndn1(ii+1,ii(1)+1))./anm(ii(1)-1,m);
-    #        C_ndn1(ii+2,ii(1)+2)=(ANM(ii(1)-1,m).*C_ndn1(ii+2,ii(1))-ANM(ii+1,m).*C_ndn1(ii+3,ii(1)+1)+ANM(ii,m).*C_ndn1(ii+1,ii(1)+1)).*IANM(ii(1),m);
-    #        C_ndn1(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn1(ii+2,ii(1)+2)).';
-     #   end
-     #   C_ndn0=C_ndn1;
 
-#        C(:,:,m+1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
-
- #   end
-
-  #  end % translate_z_gumerov
-'''
-function a_nm = anm_l(n,m);
-% For translate_z_gumerov
-fn=1./(2*n+1)./(2*n+3);
-a_nm=sqrt((n+abs(m)+1).*(n-abs(m)+1).*fn);
-a_nm(n<0)=0;
-a_nm(abs(m)>n)=0;
-end
-
-function b_nm = bnm_l(n,m);
-% For translate_z_gumerov
-b_nm=(2*(m<0)-1).*sqrt((n-m-1).*(n-m)./(2*n-1)./(2*n+1));
-b_nm(abs(m)>n)=0;
-end
-'''
+def bnm_l(n, m):
+    b_nm = (2*(m<0)-1)*np.sqrt((n-m-1)*(n-m)/(2*n-1)/(2*n+1))
+    m_bigger_n = np.argwhere(np.abs(m) > n)
+    if m_bigger_n.size:
+        m_bigger_n = tuple(m_bigger_n.T)
+        b_nm[m_bigger_n] = 0
+    return b_nm

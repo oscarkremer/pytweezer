@@ -89,7 +89,7 @@ class BscPmGauss(BscPointMatch):
         %     with degrees instead of radians.
         '''
         super().__init__(*args, **kwargs)
-        self.type = 'incident';
+        self.beam_type = 'incident';
         beam.basis = 'regular';
 
       % Parse inputs
