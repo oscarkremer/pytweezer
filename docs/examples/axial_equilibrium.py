@@ -1,31 +1,31 @@
-% ott.axial_equilibrium can be used to calculate the trapping position
+"""% ott.axial_equilibrium can be used to calculate the trapping position
 % and spring constant along the z axis.  If the beam is rotated, the
 % method can also be used for other axies too.
 %
 % This file is part of the optical tweezers toolbox.
 % See LICENSE.md for information about using/distributing this file.
+"""
+#% Add the toolbox to the path (assuming we are in ott/examples)
+#addpath('../');
 
-% Add the toolbox to the path (assuming we are in ott/examples)
-addpath('../');
+#% Close open figures
+#close all;
 
-% Close open figures
-close all;
+#% Make warnings less obtrusive
+#ott.warning('once');
+#ott.change_warnings('off');
 
-% Make warnings less obtrusive
-ott.warning('once');
-ott.change_warnings('off');
+#% Specify refractive indices
+n_medium = 1.34
+n_particle = 1.59
 
-% Specify refractive indices
-n_medium = 1.34;
-n_particle = 1.59;
+#% Specify the wavelength in freespace [m]
+wavelength = 1064.0e-9
 
-% Specify the wavelength in freespace [m]
-wavelength = 1064.0e-9;
+# Specify the particle radius (sphere)
+radius = 1.5*wavelength/n_medium
 
-% Specify the particle radius (sphere)
-radius = 1.5*wavelength/n_medium;
-
-%% Calculate the beam
+##%% Calculate the beam
 
 beam = ott.BscPmGauss('angle_deg', 50, 'polarisation', [ 1 0 ], ...
     'index_medium', n_medium, 'wavelength0', wavelength, 'power', 1.0);
