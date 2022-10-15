@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from scipy.sparse import csr_matrix
 from pytweezer.utils import combined_index, translate_z
 
 def test_translate_z_eye_values():   
@@ -21,19 +22,21 @@ def test_translate_z_eye_values():
     #% Check some values
     A, B, C = translate_z(5, np.pi/2)
 
-    print(A)
-'''
-    targetA = sparse(1, [1, 5, 11, 19, 29], ...
-        [-0.0786, 0.1411, 0.1964, -0.0217, -0.2398], 1, sz);
-    testCase.verifyThat(A(1, :), IsEqualTo(targetA, ...
-        'Within', AbsoluteTolerance(tol)), ...
-        'Incorrect A matrix values');
-    targetB = sparse(1, [1, 5, 11, 19, 29], ...
-        [-0.1306i, -0.1357i, 0.1181i, 0.2770i, 0.1312i], 1, sz);
-    testCase.verifyThat(B(1, :), IsEqualTo(targetB, ...
-        'Within', AbsoluteTolerance(tol)), ...
-        'Incorrect B matrix values');
+    targetA = csr_matrix((np.array([-0.0786, 0.1411, 0.1964, -0.0217, -0.2398]), 
+            (np.array([0, 0, 0, 0, 0]), np.array([0, 4, 10, 18, 28])), 
+            ), shape=(1, sz)).toarray()
+    targetB = csr_matrix((np.array([-0.1306j, -0.1357j, 0.1181j, 0.2770j, 0.1312j]),
+            (np.array([0, 0, 0, 0, 0]), np.array([1, 5, 11, 19, 29]))), 
+            shape=(1, sz)).toarray()
+#    testCase.verifyThat(A(1, :), IsEqualTo(targetA, ...
+#        'Within', AbsoluteTolerance(tol)), ...
+#        'Incorrect A matrix values');
+#    testCase.verifyThat(B(1, :), IsEqualTo(targetB, ...
+#        'Within', AbsoluteTolerance(tol)), ...
+#        'Incorrect B matrix values');
 
+
+'''
 def testDifferentNmax(testCase)
   % Test outputs with different row/column Nmax
 

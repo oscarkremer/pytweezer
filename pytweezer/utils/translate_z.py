@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+from scipy.sparse import csr_matrix
 from pytweezer.utils import sbesselj
 
 def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
@@ -37,10 +38,9 @@ def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
         C = translate_z_videen(nmax1, nmax2, nmax, abs(z), function_type)
     elif method == 'gumerov':
         C = translate_z_gumerov(nmax1, nmax2, nmax, abs(z), function_type)
- 
     A, B = calculate_AB(C, nmax1, nmax2, nmax, z, function_type)
 
- #   C = C[:nmax+1, 1:nmax+1, 1:min(nmax1, nmax2)+1]
+    C = C[:nmax+1, :nmax+1, :min(nmax1, nmax2)+1]
     return A, B, C
 
 '''    
@@ -177,56 +177,37 @@ def calculate_AB(C, nmax1, nmax2, nmax, z, p):
     Cp = C[2:(nmax2+2), 1:(nmax1+1), mmm]
     Cm = C[:nmax2, 1:(nmax1+1), mmm]
     t = matrixm*(C0 - 2*np.pi*np.abs(z)/(kk+1)*np.sqrt((kk-mmm+1)*(kk+mmm+1)/((2*kk+1)*(2*kk+3)))*Cp - 2*np.pi*np.abs(z)/kk*np.sqrt((kk-mmm)*(kk+mmm)/((2*kk+1)*(2*kk-1)))*Cm)
-    toIndexy=(ciy(:));
-    toIndexx=(cix(:));
-    A=t(:);
-    B=zeros(size(A));
+    toIndexy = ciy.T.flatten()
+    toIndexx = cix.T.flatten()
+    A = t.T.flatten()
+    B = np.zeros(A.size)
+    for mmm in range(1, min(nmax1, nmax2)+1):
+        sz1 = np.arange(mmm, nmax2+1)
+        sz2 = np.arange(mmm, nmax1+1)
+        C0 = C[mmm:(nmax2+1), mmm:(nmax1+1), mmm]
+        Cp = C[1+mmm:(nmax2+2), mmm:(nmax1+1), mmm]
+        Cm = C[mmm-1:nmax2, mmm:(nmax1+1), mmm]
+        tt = matrixm[sz1[0]-1:sz1[-1], sz2[0]-1:sz2[-1]]*(C0 - 2*np.pi*np.abs(z)/(kk[sz1-1]+1)*np.sqrt((kk[sz1-1]-mmm+1)*(kk[sz1-1]+mmm+1)/((2*kk[sz1-1]+1)*(2*kk[sz1-1]+3)))*Cp -2*np.pi*np.abs(z)/kk[sz1-1]*np.sqrt((kk[sz1-1]-mmm)*(kk[sz1-1]+mmm)/((2*kk[sz1-1]+1)*(2*kk[sz1-1]-1)))*Cm)
+        ciys = ciy[mmm-1:, mmm-1:]
+        cixs = cix[mmm-1:, mmm-1:]
+        toIndexy = np.concatenate([toIndexy, (ciys.T.flatten()+mmm), (ciys.T.flatten()-mmm)])
+        toIndexx = np.concatenate([toIndexx, (cixs.T.flatten()+mmm), (cixs.T.flatten()-mmm)])
 
-
-'''
-for mmm=1:min(nmax1, nmax2)
-
-    sz1 = mmm:nmax2;
-    sz2 = mmm:nmax1;
-
-    C0 = C((1+mmm):(nmax2+1),(1+mmm):(nmax1+1),mmm+1);
-    Cp = C((2+mmm):(nmax2+2),(1+mmm):(nmax1+1),mmm+1);
-    Cm = C((mmm):nmax2,(1+mmm):(nmax1+1),mmm+1);
-
-    tt = matrixm(sz1, sz2).*(C0 - 2*pi*abs(z)./(kk(sz1)+1) .* ...
-        sqrt((kk(sz1)-mmm+1).*(kk(sz1)+mmm+1) ...
-        ./((2*kk(sz1)+1).*(2*kk(sz1)+3))) .* Cp - ...
-        2*pi*abs(z)./kk(sz1).*sqrt((kk(sz1)-mmm) ...
-        .*(kk(sz1)+mmm)./((2*kk(sz1)+1).*(2*kk(sz1)-1))).*Cm);
-
-    ciys=ciy(mmm:end,mmm:end);
-    cixs=cix(mmm:end,mmm:end);
-
-    toIndexy=[toIndexy;(ciys(:)+mmm);(ciys(:)-mmm)];
-    toIndexx=[toIndexx;(cixs(:)+mmm);(cixs(:)-mmm)];
-    A=[A;tt(:);tt(:)];
-
-    tt = mmm./(kk(sz1).*(kk(sz1)+1)).*matrixm(sz1, sz2) .* C0;
-    B=[B;tt(:);-tt(:)];
-
-end
-
-% Keep B real until the end, makes things run faster
-B = 1i*2*pi*abs(z)*B;
-
-% This is faster than A = A + sparse(...) and A(sub2ind(...)) = [...]
-if z < 0
-  [n1, ~] = ott.utils.combined_index(toIndexy);
-  [n2, ~] = ott.utils.combined_index(toIndexx);
-  B=sparse(toIndexy,toIndexx,B.*(-1).^(n1-n2+1),nmax1*(nmax1+2),nmax2*(nmax2+2));
-  A=sparse(toIndexy,toIndexx,A.*(-1).^(n1-n2),nmax1*(nmax1+2),nmax2*(nmax2+2));
-else
-  B=sparse(toIndexy,toIndexx,B,nmax1*(nmax1+2),nmax2*(nmax2+2));
-  A=sparse(toIndexy,toIndexx,A,nmax1*(nmax1+2),nmax2*(nmax2+2));
-end
-
-end % calculate_AB
-'''
+        A = np.concatenate([A, tt.T.flatten(), tt.T.flatten()])
+        tt = mmm/(kk[sz1-1]*(kk[sz1-1]+1))*matrixm[sz1[0]-1:sz1[-1], sz2[0]-1:sz2[-1]]* C0
+        B = np.concatenate([B, tt.T.flatten(), -tt.T.flatten()])
+    # Keep B real until the end, makes things run faster
+    B = 1j*2*np.pi*np.abs(z)*B
+    #% This is faster than A = A + sparse(...) and A(sub2ind(...)) = [...]
+    if z < 0:
+        n1, _ = combined_index(toIndexy)
+        n2, _ = combined_index(toIndexx)
+        B = np.zeros(toIndexy, toIndexx,B*(-1)^(n1-n2+1),nmax1*(nmax1+2),nmax2*(nmax2+2));
+        A = sparse(toIndexy,toIndexx, A*(-1)^(n1-n2),nmax1*(nmax1+2),nmax2*(nmax2+2));
+    else:
+        B= csr_matrix((B, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
+        A = csr_matrix((A, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
+    return A, B
 
 def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
     mmax = min(nmax1, nmax2)
@@ -262,13 +243,11 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
         C_nd1m = (bnm_l(nd, -m)*C_ndn0[nd, m]-bnm_l(nd+1, m-1)*C_ndn0[nd+2, m])/bnm_l(m, -m)
         C_ndn1 = np.zeros(C_ndn0.shape)
         C_ndn1[m+1:C_nd1m.size+m+1, m+1] = C_nd1m
-
         C_ndn1[m+1, m+1:C_nd1m.size+m+1] = (-1)**(nd+m)*C_nd1m
-
         for j in range(m+1, nmax+1):
             i= np.arange(j, fval-j+1)
             sub_expression = ANM[i[0]-2, m-1]*C_ndn1[i+1, i[0]-1]-ANM[i,m-1]*C_ndn1[i+2,i[0]]+ANM[i-1,m-1]*C_ndn1[i,i[0]]
-            C_ndn1[i+1, i[0]+1]= sub_expression*IANM[i[0], m]
+            C_ndn1[i+1, i[0]+1]= sub_expression*IANM[i[0]-1, m-1]
             C_ndn1[i[0]+1, i+1] = (-1)**(j+i)*C_ndn1[i+1,i[0]+1]
         C_ndn0=C_ndn1
         C[:,:,m] = C_ndn0[1:nmax2+3, 1:nmax1+2]
