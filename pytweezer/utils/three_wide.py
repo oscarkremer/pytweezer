@@ -16,8 +16,8 @@ def three_wide(a):
         return np.array([[a, a, a]])
     elif isinstance(a, np.ndarray):
         if len(a.shape) == 1:
-            return np.array([a, a a]).T 
+            return np.array([a, a, a]).T 
         else:
             raise ValueError('Numpy array must have one dimensional ')
     else:
-        raise ValueError('Input must be one dimensional numpy array, integer or float.')
+        raise TypeError('Input must be one dimensional numpy array, integer or float.')

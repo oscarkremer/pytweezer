@@ -1,131 +1,60 @@
+import warnings
 import numpy as np
+from pytweezer.utils import *
 
-def translate_z(nmax, z, function_type='sbesselj'method='gumerov')):
-    '''    % Calculates translation matrices for translation of VSWFs along z axis.
-    %
-    % Usage
-    %   [A,B] = translate_z(nmax,z) calculates translation matrices.
-    %   The matrices are use as:
-    %
-    %   .. math::
-    %      M' = A M + B N
-    %
-    %      N' = B M + A N
-    %
-    %   [A,B,C] = ott.utils.translate_z(nmax,z) additionally, calculates C,
-    %   the scalar SWF translation coefficients in 3d packed form.
-    %
-    % Parameters
-    %   - nmax (int) -- Determines the number of multipole terms to include
-    %     in the translation matrices (multipole order).  Can be a single
-    %     integer or two integers for the ``[row, column]`` nmax.
-    %     If the row, column indices don't match, A and B will not be square.
-    %   - z (numeric) -- Translation distance.
-    %
-    % A and B are sparse matrices, since only m' = m VSWFs couple
-    %
-    % If z is a vector/matrix only A's and B's will be outputted. A and B will
-    % be cells of matrices the length of the number of elements in z. To save
-    % time only use unique values of z.
-    %
-    % Time *may* be saved by taking the conjugate transpose instead of
-    % calculating translations in the positive or negative direction.
-    %
-    % Optional named parameters
-    %   - 'type' (enum)   --  Type of translation matrix to generate.
-    %   - 'method' (enum) --  Method to calculate translation matrix.
-    %
-    % Translation matrix types
-    %   - 'sbesselj'            regular to regular.  Default.  Used for
-    %     most particle or beam translations.
-    %   - 'sbesselh1'           outgoing to regular.  Can be useful for
-    %     doing multiple scattering calculations.
-    %   - 'sbesselh2'           incoming to regular
-    %   - 'sbesselh1farfield'   outgoing to regular far-field limit
-    %   - 'sbesselh2farfield'   incoming to regular far-field limit
-    %
-    % Methods
-    %   - 'gumerov'     --  Use Gumerov method (default, recommended)
-    %   - 'videen'      --  Use Videen method.  (not recommended for
-    %     large translations of the beam, unstable)
-    %
-    % Example usage
-    %   The following example calculates the A and B translation matrices
-    %   and applies them to a Gaussian beam.  A procedure similar to this
-    %   is done when calling ``Bsc.translateZ`` with a distance::
-    %
-    %     beam = ott.BscPmGauss('NA', 0.9, 'index_medium', 1.0, ...
-    %         'polarisation', [1, 0], 'wavelength0', 1064e-9);
-    %
-    %     z = 1.0e-6 ./ beam.wavelength;
-    %     [A, B] = translate_z([beam.Nmax, beam.Nmax], z);
-    %
-    %     % Apply translation matrices
-    %     new_beam = beam.translate(A, B);
+def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
+    #TODO docstirng
+    #    if hasattr(z, '__iter__'):
+    #    A= np.cell(numel(z),1)
+    #    B= A
+    #    for element in z:
+    #        A{ii},B{ii} =translate_z(nmax, element, function_type=function_type, method=method)
+    #    C=0
+#        ott.warning('external')
+    #    return A, B, C
 
-
-    % This file is part of the optical tweezers toolbox.
-    % See LICENSE.md for information about using/distributing this file.
-
-    % Refs:
-    % N. A. Gumerov and R. Duraiswami, "Recursions for the computation of
-    % multipole translation and rotation coefficients for the 3-D Helmholtz
-    % equation", SIAM J. Sci. Comput. 25(4), 1344-1381 (2003)
-    %
-    % G. Videen, "Light scattering from a sphere near a plane interface",
-    % chapter 5 (pp. 81-96) % in F. Moreno and F. Gonzalez (eds), "Light
-    % Scattering from Microstructures", Lecture Notes in Physics 534,
-    % Springer-Verlag, Berlin, 2000
-    '''
-
-    if len(nmax) == 1:
-        nmax1 = nmax
-        nmax2 = nmax
-    else:
+    #% Calculate Nmax for each dimension
+    if hasattr(nmax, '__iter__'):
+        if len(nmax) > 2:
+            warnings.warn('Variable nmax given with more than two parameters, \
+                using only the two first elements: {} and {}'.format(nmax[0], nmax[1]))
         nmax1 = nmax[0]
         nmax2 = nmax[1]
-        nmax = max(nmax)
-
+        nmax = max(nmax[0], nmax[1])
+    else:
+        nmax1 = nmax
+        nmax2 = nmax    
     if z==0:
-        A=np.eye(nmax1**2+nmax1*2, nmax2**2+nmax2*2)
-        B=sparse(nmax1^2+nmax1*2, nmax2^2+nmax2*2)
-        C=A
+        A = np.eye(nmax1**2+nmax1*2, nmax2**2+nmax2*2)
+        B = np.zeros((nmax1**2+nmax1*2, nmax2**2+nmax2*2))
+        C = A
         return A, B, C
 
-% Calculate the scalar coefficients
-switch p.Results.method
-  case 'videen'
-    C = translate_z_videen(nmax1, nmax2, nmax, abs(z), p);
-  case 'gumerov'
-    C = translate_z_gumerov(nmax1, nmax2, nmax, abs(z), p);
-  otherwise
-    error('OTT:UTILS:translate_z:unknown_method', 'Unknown method');
-end
+    #% Calculate the scalar coefficients
+    if method not in ('videen', 'gumerov'):
+        raise ValueError('Unknown method. Method for translation must be in (\'videen\',\'gumerov\'))')
+    elif method == 'videen':
+        C = translate_z_videen(nmax1, nmax2, nmax, abs(z), function_type)
+    elif method == 'gumerov':
+        C = translate_z_gumerov(nmax1, nmax2, nmax, abs(z), function_type)
+ 
+    A, B = calculate_AB(C, nmax1, nmax2, nmax, z, function_type)
 
-[A,B] = calculate_AB(C, nmax1, nmax2, nmax, z, p);
+ #   C = C[:nmax+1, 1:nmax+1, 1:min(nmax1, nmax2)+1]
+    return A, B, C
 
-if nargout>2
-    C=C(1:nmax+1,1:nmax+1,1:min(nmax1, nmax2)+1);
-end
+'''    
+def translate_z_videen(nmax1, nmax2, nmax, z, p):
+    N = 3*nmax+5;
+    N3 = min(nmax1, nmax2) + 1;
 
-ott.warning('external');
+    C = zeros(N,N,N3);
 
-end
+    #% First calculate the scalar translation coeffs
 
-function C = translate_z_videen(nmax1, nmax2, nmax, z, p)
-
-import ott.utils.*
-
-N = 3*nmax+5;
-N3 = min(nmax1, nmax2) + 1;
-
-C = zeros(N,N,N3);
-
-% First calculate the scalar translation coeffs
-
-% Starting values, for m=0 and k=any -> n=0
-% Videen (38)
-k = 0:(N-1);
+    #% Starting values, for m=0 and k=any -> n=0
+    #% Videen (38)
+    k = 0:(N-1);
 
 switch p.Results.type
   case 'sbesselj'       % regular to regular
@@ -230,17 +159,16 @@ for m = 1:min(nmax1, nmax2)
 end
 
 end % translate_z_videen
+'''
+def calculate_AB(C, nmax1, nmax2, nmax, z, p):
+    #    % OK, that's the scalar coefficients
+    #% Time to find the vector coefficients - Videen (43) & (44)
 
-function [A,B] = calculate_AB(C, nmax1, nmax2, nmax, z, p)
-
-import ott.utils.*
-
-% OK, that's the scalar coefficients
-% Time to find the vector coefficients - Videen (43) & (44)
-
-nn = 1:nmax1;
-kk = (1:nmax2).';
-
+#    nn = np.arangge(1, nmax1+1)
+#    kk = np.arange((1, nmax2+1).T
+#    print(nn, kk) 
+    print('here')
+'''    
 matrixm=sqrt(kk.*(kk+1)) ./ sqrt(nn.*(nn+1));
 
 central_iterator1=[1:nmax1].*[2:nmax1+1];
@@ -307,88 +235,74 @@ else
 end
 
 end % calculate_AB
+'''
 
-function C = translate_z_gumerov(nmax1, nmax2, nmax, r, p)
-% Optimised implementation from Alex
+def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
+    mmax = min(nmax1, nmax2)
+    m = 0
+    fval = 2*nmax+1
+    nd = np.arange(m, fval+1)
+    kr=2*np.pi*r
+    #%compute seed functions:
 
-import ott.utils.*
+    if function_type not in ('sbesselj', 'sbesselh1', 'sbesselh2'):
+        raise ValueError('Unknown value for function_type parameter, allowed values are: \
+            (\'sbesselj\', \'sbesselh1\', \'sbesselh2\')')
+    elif function_type == 'sbesselj':
+        C_nd00=[np.sqrt(2*nd+1)*sbesselj(nd,kr)]
+    elif function_type == 'sbesselh1':
+        C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd,kr, htype='1')]/2
+    elif function_type == 'sbesselh2':
+        C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd, kr, htype='2')]/2
 
-% Having pre-computed a_nm it's fast?
-% nmax=3;
-% r=0.1;
+    #    C_ndn0=zeros(length(nd)+1,length(nd)+1);
+    #C_ndn0(1+[1:length(C_nd00)],2)=C_nd00;
+    #C_ndn0(2,1+[1:length(C_nd00)])=((-1).^(nd).*C_nd00).';
 
-%some "setup" values:
-mmax=min(nmax1,nmax2);
-m=0;
-fval=2*nmax+1;
-nd=[m:fval];
+#    %gumerov's zonal coefficients are m=0. Compute columns, limited by diagonal:
+#    %compute lower diagonal first:
+#    for jj=1:nmax
+#        ii=[jj:fval-jj].';
+#        C_ndn0(ii+2,ii(1)+2)=(anm_l(ii(1)-2,0).*C_ndn0(ii+2,ii(1))-anm_l(ii,0).*C_ndn0(ii+3,ii(1)+1)+anm_l(ii-1,0).*C_ndn0(ii+1,ii(1)+1))./anm_l(ii(1)-1,0);
+#        C_ndn0(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn0(ii+2,ii(1)+2)).';
+#    end
 
-kr=2*pi*r;
+ #   %create "C":
+ #   C=zeros(nmax2+2,nmax1+1,mmax+1);
+ #   C(:,:,1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
 
-%compute seed functions:
-switch p.Results.type
-  case 'sbesselj'       % regular to regular
-    C_nd00=[sqrt(2*nd+1).*sbesselj(nd,kr)];
+  #  %Having computed anm for m=0; cases we now can compute anm for all
+  #  %remaining cases:
+   # ANM=anm_l([0:2*nmax+1].',[1:nmax]);
+   # IANM=1./ANM;
+   # for m=1:mmax
 
-  case 'sbesselh1'      % outgoing to regular
-    C_nd00=[sqrt(2*nd+1).*sbesselh1(nd,kr)]./2;
+    #    %having computed the zonal coefficients we now compute the "diagonal ones"
+    #    %(tesseral)
+    #    %i.e. ones which generate m on the first column we then reproduce the same
+     #   %commputation for the n nd recursion:
+#        nd=[m:fval-m].';
+#        C_nd1m=(bnm_l(nd,-m).*C_ndn0(nd+1,m+1)-bnm_l(nd+1,m-1).*C_ndn0(nd+3,m+1))./bnm_l(m,(-m));
 
-  case 'sbesselh2'      % incoming to regular
-    C_nd00=[sqrt(2*nd+1).*sbesselh2(nd,kr)]./2;
+ #       %having computed the first seed column we now recur the elements:
+ #       C_ndn1=zeros(size(C_ndn0)); %make zero as we re-use
+ #       C_ndn1([1:length(C_nd1m)]+m+1,m+2)=C_nd1m;
+  #      C_ndn1(m+2,[1:length(C_nd1m)]+m+1)=((-1).^(nd+m).*C_nd1m).';
 
-  otherwise
-    error('OTT:UTILS:translate_z:type_error', 'Unknown translation type');
-end
+    #    for jj=m+1:nmax
+  ##          ii=[jj:fval-jj].';
+    #%         C_ndn1(ii+2,ii(1)+2)=(anm(ii(1)-2,m).*C_ndn1(ii+2,ii(1))-anm(ii,m).*C_ndn1(ii+3,ii(1)+1)+anm(ii-1,m).*C_ndn1(ii+1,ii(1)+1))./anm(ii(1)-1,m);
+    #        C_ndn1(ii+2,ii(1)+2)=(ANM(ii(1)-1,m).*C_ndn1(ii+2,ii(1))-ANM(ii+1,m).*C_ndn1(ii+3,ii(1)+1)+ANM(ii,m).*C_ndn1(ii+1,ii(1)+1)).*IANM(ii(1),m);
+    #        C_ndn1(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn1(ii+2,ii(1)+2)).';
+     #   end
+     #   C_ndn0=C_ndn1;
 
-C_ndn0=zeros(length(nd)+1,length(nd)+1);
-C_ndn0(1+[1:length(C_nd00)],2)=C_nd00;
-C_ndn0(2,1+[1:length(C_nd00)])=((-1).^(nd).*C_nd00).';
+#        C(:,:,m+1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
 
-%gumerov's zonal coefficients are m=0. Compute columns, limited by diagonal:
-%compute lower diagonal first:
-for jj=1:nmax
-    ii=[jj:fval-jj].';
-    C_ndn0(ii+2,ii(1)+2)=(anm_l(ii(1)-2,0).*C_ndn0(ii+2,ii(1))-anm_l(ii,0).*C_ndn0(ii+3,ii(1)+1)+anm_l(ii-1,0).*C_ndn0(ii+1,ii(1)+1))./anm_l(ii(1)-1,0);
-    C_ndn0(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn0(ii+2,ii(1)+2)).';
-end
+ #   end
 
-%create "C":
-C=zeros(nmax2+2,nmax1+1,mmax+1);
-C(:,:,1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
-
-%Having computed anm for m=0; cases we now can compute anm for all
-%remaining cases:
-ANM=anm_l([0:2*nmax+1].',[1:nmax]);
-IANM=1./ANM;
-for m=1:mmax
-
-    %having computed the zonal coefficients we now compute the "diagonal ones"
-    %(tesseral)
-    %i.e. ones which generate m on the first column we then reproduce the same
-    %commputation for the n nd recursion:
-
-    nd=[m:fval-m].';
-    C_nd1m=(bnm_l(nd,-m).*C_ndn0(nd+1,m+1)-bnm_l(nd+1,m-1).*C_ndn0(nd+3,m+1))./bnm_l(m,(-m));
-
-    %having computed the first seed column we now recur the elements:
-    C_ndn1=zeros(size(C_ndn0)); %make zero as we re-use
-    C_ndn1([1:length(C_nd1m)]+m+1,m+2)=C_nd1m;
-    C_ndn1(m+2,[1:length(C_nd1m)]+m+1)=((-1).^(nd+m).*C_nd1m).';
-
-    for jj=m+1:nmax
-        ii=[jj:fval-jj].';
-%         C_ndn1(ii+2,ii(1)+2)=(anm(ii(1)-2,m).*C_ndn1(ii+2,ii(1))-anm(ii,m).*C_ndn1(ii+3,ii(1)+1)+anm(ii-1,m).*C_ndn1(ii+1,ii(1)+1))./anm(ii(1)-1,m);
-        C_ndn1(ii+2,ii(1)+2)=(ANM(ii(1)-1,m).*C_ndn1(ii+2,ii(1))-ANM(ii+1,m).*C_ndn1(ii+3,ii(1)+1)+ANM(ii,m).*C_ndn1(ii+1,ii(1)+1)).*IANM(ii(1),m);
-        C_ndn1(ii(1)+2,ii+2)=((-1).^(jj+ii).*C_ndn1(ii+2,ii(1)+2)).';
-    end
-    C_ndn0=C_ndn1;
-
-    C(:,:,m+1)=C_ndn0(2:(nmax2+3),2:(nmax1+2));
-
-end
-
-end % translate_z_gumerov
-
+  #  end % translate_z_gumerov
+'''
 function a_nm = anm_l(n,m);
 % For translate_z_gumerov
 fn=1./(2*n+1)./(2*n+3);
@@ -402,5 +316,4 @@ function b_nm = bnm_l(n,m);
 b_nm=(2*(m<0)-1).*sqrt((n-m-1).*(n-m)./(2*n-1)./(2*n+1));
 b_nm(abs(m)>n)=0;
 end
-
-    return A, B,C
+'''
