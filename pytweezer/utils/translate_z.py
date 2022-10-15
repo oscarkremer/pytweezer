@@ -1,116 +1,96 @@
-function [A,B,C] = translate_z(nmax,z, varargin)
-% Calculates translation matrices for translation of VSWFs along z axis.
-%
-% Usage
-%   [A,B] = translate_z(nmax,z) calculates translation matrices.
-%   The matrices are use as:
-%
-%   .. math::
-%      M' = A M + B N
-%
-%      N' = B M + A N
-%
-%   [A,B,C] = ott.utils.translate_z(nmax,z) additionally, calculates C,
-%   the scalar SWF translation coefficients in 3d packed form.
-%
-% Parameters
-%   - nmax (int) -- Determines the number of multipole terms to include
-%     in the translation matrices (multipole order).  Can be a single
-%     integer or two integers for the ``[row, column]`` nmax.
-%     If the row, column indices don't match, A and B will not be square.
-%   - z (numeric) -- Translation distance.
-%
-% A and B are sparse matrices, since only m' = m VSWFs couple
-%
-% If z is a vector/matrix only A's and B's will be outputted. A and B will
-% be cells of matrices the length of the number of elements in z. To save
-% time only use unique values of z.
-%
-% Time *may* be saved by taking the conjugate transpose instead of
-% calculating translations in the positive or negative direction.
-%
-% Optional named parameters
-%   - 'type' (enum)   --  Type of translation matrix to generate.
-%   - 'method' (enum) --  Method to calculate translation matrix.
-%
-% Translation matrix types
-%   - 'sbesselj'            regular to regular.  Default.  Used for
-%     most particle or beam translations.
-%   - 'sbesselh1'           outgoing to regular.  Can be useful for
-%     doing multiple scattering calculations.
-%   - 'sbesselh2'           incoming to regular
-%   - 'sbesselh1farfield'   outgoing to regular far-field limit
-%   - 'sbesselh2farfield'   incoming to regular far-field limit
-%
-% Methods
-%   - 'gumerov'     --  Use Gumerov method (default, recommended)
-%   - 'videen'      --  Use Videen method.  (not recommended for
-%     large translations of the beam, unstable)
-%
-% Example usage
-%   The following example calculates the A and B translation matrices
-%   and applies them to a Gaussian beam.  A procedure similar to this
-%   is done when calling ``Bsc.translateZ`` with a distance::
-%
-%     beam = ott.BscPmGauss('NA', 0.9, 'index_medium', 1.0, ...
-%         'polarisation', [1, 0], 'wavelength0', 1064e-9);
-%
-%     z = 1.0e-6 ./ beam.wavelength;
-%     [A, B] = translate_z([beam.Nmax, beam.Nmax], z);
-%
-%     % Apply translation matrices
-%     new_beam = beam.translate(A, B);
+import numpy as np
+
+def translate_z(nmax, z, function_type='sbesselj'method='gumerov')):
+    '''    % Calculates translation matrices for translation of VSWFs along z axis.
+    %
+    % Usage
+    %   [A,B] = translate_z(nmax,z) calculates translation matrices.
+    %   The matrices are use as:
+    %
+    %   .. math::
+    %      M' = A M + B N
+    %
+    %      N' = B M + A N
+    %
+    %   [A,B,C] = ott.utils.translate_z(nmax,z) additionally, calculates C,
+    %   the scalar SWF translation coefficients in 3d packed form.
+    %
+    % Parameters
+    %   - nmax (int) -- Determines the number of multipole terms to include
+    %     in the translation matrices (multipole order).  Can be a single
+    %     integer or two integers for the ``[row, column]`` nmax.
+    %     If the row, column indices don't match, A and B will not be square.
+    %   - z (numeric) -- Translation distance.
+    %
+    % A and B are sparse matrices, since only m' = m VSWFs couple
+    %
+    % If z is a vector/matrix only A's and B's will be outputted. A and B will
+    % be cells of matrices the length of the number of elements in z. To save
+    % time only use unique values of z.
+    %
+    % Time *may* be saved by taking the conjugate transpose instead of
+    % calculating translations in the positive or negative direction.
+    %
+    % Optional named parameters
+    %   - 'type' (enum)   --  Type of translation matrix to generate.
+    %   - 'method' (enum) --  Method to calculate translation matrix.
+    %
+    % Translation matrix types
+    %   - 'sbesselj'            regular to regular.  Default.  Used for
+    %     most particle or beam translations.
+    %   - 'sbesselh1'           outgoing to regular.  Can be useful for
+    %     doing multiple scattering calculations.
+    %   - 'sbesselh2'           incoming to regular
+    %   - 'sbesselh1farfield'   outgoing to regular far-field limit
+    %   - 'sbesselh2farfield'   incoming to regular far-field limit
+    %
+    % Methods
+    %   - 'gumerov'     --  Use Gumerov method (default, recommended)
+    %   - 'videen'      --  Use Videen method.  (not recommended for
+    %     large translations of the beam, unstable)
+    %
+    % Example usage
+    %   The following example calculates the A and B translation matrices
+    %   and applies them to a Gaussian beam.  A procedure similar to this
+    %   is done when calling ``Bsc.translateZ`` with a distance::
+    %
+    %     beam = ott.BscPmGauss('NA', 0.9, 'index_medium', 1.0, ...
+    %         'polarisation', [1, 0], 'wavelength0', 1064e-9);
+    %
+    %     z = 1.0e-6 ./ beam.wavelength;
+    %     [A, B] = translate_z([beam.Nmax, beam.Nmax], z);
+    %
+    %     % Apply translation matrices
+    %     new_beam = beam.translate(A, B);
 
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
+    % This file is part of the optical tweezers toolbox.
+    % See LICENSE.md for information about using/distributing this file.
 
-% Refs:
-% N. A. Gumerov and R. Duraiswami, "Recursions for the computation of
-% multipole translation and rotation coefficients for the 3-D Helmholtz
-% equation", SIAM J. Sci. Comput. 25(4), 1344-1381 (2003)
-%
-% G. Videen, "Light scattering from a sphere near a plane interface",
-% chapter 5 (pp. 81-96) % in F. Moreno and F. Gonzalez (eds), "Light
-% Scattering from Microstructures", Lecture Notes in Physics 534,
-% Springer-Verlag, Berlin, 2000
+    % Refs:
+    % N. A. Gumerov and R. Duraiswami, "Recursions for the computation of
+    % multipole translation and rotation coefficients for the 3-D Helmholtz
+    % equation", SIAM J. Sci. Comput. 25(4), 1344-1381 (2003)
+    %
+    % G. Videen, "Light scattering from a sphere near a plane interface",
+    % chapter 5 (pp. 81-96) % in F. Moreno and F. Gonzalez (eds), "Light
+    % Scattering from Microstructures", Lecture Notes in Physics 534,
+    % Springer-Verlag, Berlin, 2000
+    '''
 
-import ott.utils.*
-ott.warning('internal');
+    if len(nmax) == 1:
+        nmax1 = nmax
+        nmax2 = nmax
+    else:
+        nmax1 = nmax[0]
+        nmax2 = nmax[1]
+        nmax = max(nmax)
 
-p = inputParser;
-p.addParameter('type', 'sbesselj');
-p.addParameter('method', 'gumerov');
-p.parse(varargin{:});
-
-if numel(z)>1
-    A=cell(numel(z),1);
-    B=A;
-    for ii=1:numel(z)
-        [A{ii},B{ii}]=translate_z(nmax,z(ii), varargin{:});
-    end
-    C=0;
-    ott.warning('external');
-    return
-end
-
-% Calculate Nmax for each dimension
-if numel(nmax) == 1
-  nmax1 = nmax;
-  nmax2 = nmax;
-else
-  nmax1 = nmax(1);
-  nmax2 = nmax(2);
-  nmax = max(nmax(1:2));
-end
-
-if z==0
-    A=speye(nmax1^2+nmax1*2, nmax2^2+nmax2*2);
-    B=sparse(nmax1^2+nmax1*2, nmax2^2+nmax2*2);
-    C=A;
-    ott.warning('external');
-    return
-end
+    if z==0:
+        A=np.eye(nmax1**2+nmax1*2, nmax2**2+nmax2*2)
+        B=sparse(nmax1^2+nmax1*2, nmax2^2+nmax2*2)
+        C=A
+        return A, B, C
 
 % Calculate the scalar coefficients
 switch p.Results.method
@@ -423,3 +403,4 @@ b_nm=(2*(m<0)-1).*sqrt((n-m-1).*(n-m)./(2*n-1)./(2*n+1));
 b_nm(abs(m)>n)=0;
 end
 
+    return A, B,C

@@ -3,6 +3,7 @@ from .combined_index import combined_index
 from .match_size import match_size
 from .rotations import rotx, roty, rotz
 from .rtp2xyz import rtp2xyz
+#from .translate_z import translate_z
 from .wigner_rotation_matrix import wigner_rotation_matrix
 from .xyz2rtp import xyz2rtp
 
@@ -12,6 +13,7 @@ __all__ = [
     'match_size',
     'rotations',
     'rtp2xyz',
+#    'translate_z',
     'wigner_rotation_matrix',
     'xyz2rtp'
 ]
