@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 import numpy as np
 from numpy import matlib as matlib
 

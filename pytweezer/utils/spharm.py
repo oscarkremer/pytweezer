@@ -1,3 +1,7 @@
+import numpy as np
+from .legendre_row import legendre_row
+from .match_size import match_size
+
 def spharm(n, m, theta, phi=None):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
@@ -21,113 +25,60 @@ def spharm(n, m, theta, phi=None):
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
     '''
-import ott.utils.*
+    if not (isinstance(n, float) or (isinstance(n, int)):
+        raise TypeError('Input parameter \'n\' must be scalar.')
+    if not phi:    
+        phi = theta
+        theta = m
+    mi = m
+    m = np.arange(-n:n+1)
+    index_bigger = np.arghwere(abs(m) <=n)
+    if index_bigger.size:
+       m = m([tuple(index_bigger.T)])
 
-ott.warning('internal');
+    [theta, phi] = match_size(theta, phi)
+    #input_length = 
 
-if length(n)>1
-    ott.warning('external');
-    error('n must be a scalar at present')
-end
 
-if nargin<4
-  if nargin < 3
-    error('Not enough input arguments');
-  end
-  
-    phi=theta;
-    theta=m;
-    m=[-n:n];
-end
 
-%this is a cop out meant for future versions.
-if nargout>1
-    mi=m;
-    m=[-n:n];
-end
+    #pnm = legendrerow(n,theta);
 
-m=m(abs(m)<=n);
 
-[theta,phi] = matchsize(theta,phi);
-input_length = length(theta);
+    #pnm = pnm(abs(m)+1,:); %pick the m's we potentially have.
 
-% if abs(m) > n | n < 0
-%    Y = zeros(input_length,1);
-%    Ytheta = zeros(input_length,1);
-%    Yphi = zeros(input_length,1);
-%    return
-% end
+    #[phiM,mv]=meshgrid(phi,m);
 
-pnm = legendrerow(n,theta);
-%pnm = pnm(abs(m)+1,:).';
+    #pnm = [(-1).^mv(m<0,:).*pnm(m<0,:);pnm(m>=0,:)];
 
-% Why is this needed? Better do it, or m = 0 square integrals
-% are equal to 1/2, not 1.
-% This is either a bug in legendre or a mistake in the docs for it!
-% Check this if MATLAB version changes! (Version 5.X)
-%pnm(1,:) = pnm(1,:) * sqrt(2);
+    #expphi = exp(1i*mv.*phiM);
+    #Y = pnm .* expphi;
+    #if nargout <= 1
+    #    Y=Y.';
+    #    ott.warning('external');
+    #    return
 
-pnm = pnm(abs(m)+1,:); %pick the m's we potentially have.
+    #expplus = exp(1i*phiM);
+    #expminus = exp(-1i*phiM);
 
-[phiM,mv]=meshgrid(phi,m);
+    '''
+    ymplus=[Y(2:end,:);zeros(1,length(theta))];
+    ymminus=[zeros(1,length(theta));Y(1:end-1,:)];
 
-pnm = [(-1).^mv(m<0,:).*pnm(m<0,:);pnm(m>=0,:)];
+    Ytheta = sqrt((n-mv+1).*(n+mv))/2 .* expplus .* ymminus ...
+            - sqrt((n-mv).*(n+mv+1))/2 .* expminus .* ymplus;
 
-expphi = exp(1i*mv.*phiM);
+    Y2 = spharm(n+1,theta,phi).';
 
-%N = sqrt((2*n+1)/(8*pi));
+    ymplus=Y2(3:end,:);
+    ymminus=Y2(1:end-2,:);
 
-Y = pnm .* expphi;
+    Yphi = 1i/2 * sqrt((2*n+1)/(2*n+3)) * ...
+    ( sqrt((n+mv+1).*(n+mv+2)) .* expminus .* ymplus ...
+    + sqrt((n-mv+1).*(n-mv+2)) .* expplus .* ymminus );
 
-% Do we want to calculate the derivatives?
-if nargout <= 1
-   Y=Y.';
-   % Doesn't look like it
-   ott.warning('external');
-   return
-end
+    Y=Y(n+mi+1,:).';
+    Yphi=Yphi(n+mi+1,:).';
+    Ytheta=Ytheta(n+mi+1,:).';
 
-% We use recursion relations to find the derivatives, choosing
-% ones that don't involve division by sin or cos, so no need to
-% special cases to avoid division by zero
-
-% exp(i*phi),exp(-i*phi) are useful for both partial derivatives
-expplus = exp(1i*phiM);
-expminus = exp(-1i*phiM);
-
-% theta derivative
-% d/dtheta Y(n,m) = 1/2 exp(-i phi) sqrt((n-m)(n+m+1)) Y(n,m+1)
-%                 - 1/2 exp(i phi) sqrt((n-m+1)(n+m)) Y(n,m-1)
-
-ymplus=[Y(2:end,:);zeros(1,length(theta))];
-ymminus=[zeros(1,length(theta));Y(1:end-1,:)];
-
-Ytheta = sqrt((n-mv+1).*(n+mv))/2 .* expplus .* ymminus ...
-         - sqrt((n-mv).*(n+mv+1))/2 .* expminus .* ymplus;
-
-% phi derivative - actually 1/sin(theta) * d/dphi Y(n,m)
-% Note that this is just i*m/sin(theta) * Y(n,m), but we use a
-% recursion relation to avoid divide-by-zero trauma.
-% 1/sin(theta) d/dphi Y(n,m) = 
-% i/2 * [ exp(-i phi) sqrt((2n+1)(n+m+1)(n+m+2)/(2n+3)) Y(n+1,m+1)
-%     + exp(i phi) sqrt((2n+1)(n-m+1)(n-m+2)/(2n+3)) Y(n+1,m-1) ]
-
-Y2 = spharm(n+1,theta,phi).';
-
-ymplus=Y2(3:end,:);
-ymminus=Y2(1:end-2,:);
-
-% size(ymplus)
-% size(mv)
-% size(expminus)
-
-Yphi = 1i/2 * sqrt((2*n+1)/(2*n+3)) * ...
-   ( sqrt((n+mv+1).*(n+mv+2)) .* expminus .* ymplus ...
-   + sqrt((n-mv+1).*(n-mv+2)) .* expplus .* ymminus );
-
-Y=Y(n+mi+1,:).';
-Yphi=Yphi(n+mi+1,:).';
-Ytheta=Ytheta(n+mi+1,:).';
-
-ott.warning('external');
     return Y, Ytheta, Yphi
+    '''

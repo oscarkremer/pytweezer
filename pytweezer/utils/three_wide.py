@@ -20,4 +20,4 @@ def three_wide(a):
         else:
             raise ValueError('Numpy array must have one dimensional ')
     else:
-        raise TypeError('Input must be one dimensional numpy array, integer or float.')
+        raise ValueError('Input must be one dimensional numpy array, integer or float.')

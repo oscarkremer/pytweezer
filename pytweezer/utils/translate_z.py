@@ -1,18 +1,21 @@
 import warnings
+warnings.filterwarnings('ignore')
 import numpy as np
 from scipy.sparse import csr_matrix
-from pytweezer.utils import sbesselj
+from .sbesselj import sbesselj
+from .sbesselh import sbesselh
+from .combined_index import combined_index
 
 def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
     #TODO docstirng
-    #    if hasattr(z, '__iter__'):
-    #    A= np.cell(numel(z),1)
-    #    B= A
-    #    for element in z:
-    #        A{ii},B{ii} =translate_z(nmax, element, function_type=function_type, method=method)
-    #    C=0
-#        ott.warning('external')
-    #    return A, B, C
+    if hasattr(z, '__iter__'):
+        A, B, C = [], [], []
+        for element in z:
+            A_i, B_i, C_i = translate_z(nmax, element, function_type=function_type, method=method)
+            A.append(A_i)
+            B.append(B_i)
+            C.append(C_i)
+        return A, B, C
 
     #% Calculate Nmax for each dimension
     if hasattr(nmax, '__iter__'):
@@ -43,123 +46,77 @@ def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
     C = C[:nmax+1, :nmax+1, :min(nmax1, nmax2)+1]
     return A, B, C
 
-'''    
-def translate_z_videen(nmax1, nmax2, nmax, z, p):
-    N = 3*nmax+5;
-    N3 = min(nmax1, nmax2) + 1;
+def translate_z_videen(nmax1, nmax2, nmax, z, function_type):
+    N = 3*nmax+5
+    N3 = min(nmax1, nmax2) + 1
 
-    C = zeros(N,N,N3);
+    C = np.zeros((N,N,N3))+0j
+    k = np.arange(0, N)
+    if function_type not in ('sbesselj', 'sbesselh1', 'sbesselh2'):
+        raise ValueError('Unknown value for function_type parameter, allowed values are: \
+            (\'sbesselj\', \'sbesselh1\', \'sbesselh2\')')
+    elif function_type == 'sbesselj':
+        if z < 0:
+            jn, _ = sbesselj(k, 2*np.pi*abs(z))
+            C[:, 0, 0] = np.sqrt(2*k+1)*jn*(-1)**(k)
+        else:
+            jn, _ = sbesselj(k, 2*np.pi*z)
+            C[:, 0, 0] = np.sqrt(2*k+1)*jn
+    elif function_type == 'sbesselh1':
+        if z < 0:
+            hn, _ = sbesselh(k, 2*np.pi*abs(z), htype='1')
+            C[:, 0, 0] = np.sqrt(2*k+1)*hn*(-1)**(k)
+        else:
+            hn, _ = sbesselh(k, 2*np.pi*z, htype='1')
+            C[:, 0, 0] = np.sqrt(2*k+1)*hn
+    elif function_type == 'sbesselh2':
+        if z < 0:
+            hn, _ = sbesselh(k, 2*np.pi*abs(z), htype='2')
+            C[:, 0, 0] = np.sqrt(2*k+1)*hn*(-1)**(k)
+        else:
+            hn, _ = sbesselh(k, 2*np.pi*z, htype='2')
+            C[:, 0, 0] = np.sqrt(2*k+1)*hn
+    kk = np.arange(1, N-1)
+    kk = kk.T.flatten()
 
-    #% First calculate the scalar translation coeffs
+    Cm = C[kk[0]-1:kk[-1], 0,0]
+    Cm = Cm.T.flatten()
+    Cp = C[kk[0]+1:kk[-1]+2, 0, 0]
+    Cp = Cp.T.flatten()
+    C[0, 1, 0] = -C[1, 0, 0]
+    C[kk[0]:kk[-1]+1, 1, 0] = np.sqrt(3/(2*kk+1))*(kk*np.sqrt(1/(2*kk-1))*Cm-(kk+1)*np.sqrt(1/(2*kk+3))*Cp)
 
-    #% Starting values, for m=0 and k=any -> n=0
-    #% Videen (38)
-    k = 0:(N-1);
+#    % Now do the rest, up to n=N-1
+#    % Videen (40), with n(Videen) = n-1, n' = k
+#    % Note that only the k=0 term is needed for n=N-1
+    for i in range(2, N-1):
+        kk = np.arange(1, N-i)
+        kk = kk.T.flatten()
+        Cm = C[kk[0]-1:kk[-1], i-1, 0]
+        Cm = Cm.T.flatten()
+        Cp = C[kk[0]+1:kk[-1]+2, i-1, 0]
+        Cp = Cp.T.flatten()
+        C0 = C[kk[0]:kk[-1]+1, i-2, 0].T.flatten()
+        C[0, i, 0] = (-1)**i*C[i, 0, 0]
+        C[kk[0]:kk[-1]+1, i, 0] = np.sqrt((2*i+1)/(2*kk+1))/i*(kk*np.sqrt((2*i-1)/(2*kk-1))*Cm+(i-1)*np.sqrt((2*kk+1)/(2*i-3))*C0-(kk+1)*np.sqrt((2*i-1)/(2*kk+3))*Cp)
+    n = N-1
+    C[0, N-1, 0] = np.sqrt(2*n+1)/n*((n-1)*np.sqrt(1/(2*n-3))*C[0, n-2, 0]-np.sqrt((2*n-1)/3)*C[1, n-1, 0])
+#    % OK, now m other than m=0
+#    % Only need to do positive m, since C(-m) = C(m)
+#    % Videen (41)
+    for m  in range(1, min(nmax1, nmax2)+1):
+        nn = np.arange(m, nmax1+1)
+        kk = np.arange(m, N-1)
+        C0 = C[kk[0]:kk[-1]+1, nn[0]:nn[-1]+1, m-1]
+        Cp = C[kk[0]+1:kk[-1]+2, nn[0]:nn[-1]+1,m-1]
+        Cm = C[kk[0]-1:kk[-1], nn[0]:nn[-1]+1, m-1]
+        factor1 = np.sqrt(1/((2*kk.reshape((-1,1))+1)*((nn.reshape((1,-1))-m+1)*(nn.reshape((1,-1))+m))))
+        factor2 = np.sqrt(((kk-m+1)*(kk+m)*(2*kk+1))).reshape((-1,1))*C0
+        factor3 = 2*np.pi*z*np.sqrt((((kk-m+2)*(kk-m+1)))/((2*kk+3))).reshape((-1, 1))*Cp
+        factor4 = 2*np.pi*z*np.sqrt((((kk+m)*(kk+m-1)))/((2*kk-1))).reshape((-1, 1))*Cm
+        C[kk[0]:kk[-1]+1, nn[0]:nn[-1]+1, m] = factor1*(factor2-factor3-factor4)
+    return C
 
-switch p.Results.type
-  case 'sbesselj'       % regular to regular
-    if z < 0
-      C(:,1,1) = sqrt(2*k+1) .* sbesselj(k,2*pi*abs(z)) .* (-1).^(k);
-    else
-      C(:,1,1) = sqrt(2*k+1) .* sbesselj(k,2*pi*z);
-    end
-
-  case 'sbesselh1'      % outgoing to regular
-    if z < 0
-      C(:,1,1) = sqrt(2*k+1) .* sbesselh1(k,2*pi*abs(z)) .* (-1).^(k);
-    else
-      C(:,1,1) = sqrt(2*k+1) .* sbesselh1(k,2*pi*z);
-    end
-
-  case 'sbesselh2'      % incoming to regular
-    if z < 0
-      C(:,1,1) = sqrt(2*k+1) .* sbesselh2(k,2*pi*abs(z)) .* (-1).^(k);
-    else
-      C(:,1,1) = sqrt(2*k+1) .* sbesselh2(k,2*pi*z);
-    end
-
-  case 'sbesselh1farfield'    % outgoing to regular
-
-    if 2*pi*abs(z) <= (N-1).^2
-      ott.warning('Farfield limit may not be satisfied');
-    end
-
-    h1limit = (-1i).^k./(1i*2*pi*abs(z)) .* exp(1i*2*pi*abs(z));
-
-    if z < 0
-      C(:,1,1) = sqrt(2*k+1) .* h1limit .* (-1).^(k);
-    else
-      C(:,1,1) = sqrt(2*k+1) .* h1limit;
-    end
-
-  case 'sbesselh2farfield'    % incoming to regular
-
-    if 2*pi*abs(z) <= (N-1).^2
-      ott.warning('Farfield limit may not be satisfied');
-    end
-
-    h2limit = (1i).^k./(-1i*2*pi*abs(z)) .* exp(-1i*2*pi*abs(z));
-
-    if z < 0
-      C(:,1,1) = sqrt(2*k+1) .* h2limit .* (-1).^(k);
-    else
-      C(:,1,1) = sqrt(2*k+1) .* h2limit;
-    end
-
-  otherwise
-    error('OTT:UTILS:translate_z:type_error', 'Unknown translation type');
-end
-
-% Do n=1 as a special case (Videen (40) with n=0,n'=k)
-kk = 1:(N-2);
-kk = kk(:);
-Cm = C(kk,1,1);
-Cm = Cm(:);
-Cp = C(kk+2,1,1);
-Cp = Cp(:);
-C(1,2,1) = -C(2,1,1);
-C(kk+1,2,1) = sqrt(3./(2*kk+1)) .* ...
-    ( kk.*sqrt(1./(2*kk-1)) .* Cm - (kk+1).*sqrt(1./(2*kk+3)) .* Cp );
-
-% Now do the rest, up to n=N-1
-% Videen (40), with n(Videen) = n-1, n' = k
-% Note that only the k=0 term is needed for n=N-1
-for n = 2:(N-2)
-    kk = 1:(N-n-1);
-    kk = kk(:);
-    Cm = C(kk,n,1);
-    Cm = Cm(:);
-    Cp = C(kk+2,n,1);
-    Cp = Cp(:);
-    C0 = C(kk+1,n-1,1);
-    C0 = C0(:);
-    C(1,n+1,1) = (-1)^n * C(n+1,1,1);
-    C(kk+1,n+1,1) = sqrt((2*n+1)./(2*kk+1))/n .* ...
-        ( kk.*sqrt((2*n-1)./(2*kk-1)) .* Cm ...
-        + (n-1)*sqrt((2*kk+1)/(2*n-3)) .* C0 ...
-        - (kk+1).*sqrt((2*n-1)./(2*kk+3)) .* Cp );
-end
-n = N-1;
-C(1,N,1) = sqrt(2*n+1)/n * ...
-    ( (n-1)*sqrt(1/(2*n-3)) * C(1,n-1,1) - sqrt((2*n-1)/3) * C(2,n,1) );
-
-% OK, now m other than m=0
-% Only need to do positive m, since C(-m) = C(m)
-% Videen (41)
-for m = 1:min(nmax1, nmax2)
-  nn = m:nmax1;
-  kk = (m:N-2).';
-  C0 = C(kk+1,nn+1,m);
-  Cp = C(kk+2,nn+1,m);
-  Cm = C(kk,nn+1,m);
-  C(kk+1,nn+1,m+1) = sqrt(1./((2*kk+1)*((nn-m+1).*(nn+m)))) .* ...
-      ( sqrt(((kk-m+1).*(kk+m).*(2*kk+1))).*C0 ...
-      -2*pi*z*sqrt((((kk-m+2).*(kk-m+1)))./((2*kk+3))).*Cp ...
-      -2*pi*z*sqrt((((kk+m).*(kk+m-1)))./((2*kk-1))).*Cm );
-end
-
-end % translate_z_videen
-'''
 def calculate_AB(C, nmax1, nmax2, nmax, z, p):
     #    % OK, that's the scalar coefficients
     #% Time to find the vector coefficients - Videen (43) & (44)
@@ -202,10 +159,10 @@ def calculate_AB(C, nmax1, nmax2, nmax, z, p):
     if z < 0:
         n1, _ = combined_index(toIndexy)
         n2, _ = combined_index(toIndexx)
-        B = np.zeros(toIndexy, toIndexx,B*(-1)^(n1-n2+1),nmax1*(nmax1+2),nmax2*(nmax2+2));
-        A = sparse(toIndexy,toIndexx, A*(-1)^(n1-n2),nmax1*(nmax1+2),nmax2*(nmax2+2));
+        B = csr_matrix((B*(-1)**(n1-n2+1), (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
+        A = csr_matrix((A*(-1)**(n1-n2), (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
     else:
-        B= csr_matrix((B, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
+        B = csr_matrix((B, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
         A = csr_matrix((A, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
     return A, B
 
@@ -222,10 +179,12 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
         jn, _ = sbesselj(nd,kr) 
         C_nd00 = np.sqrt(2*nd+1)*jn
     elif function_type == 'sbesselh1':
-        C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd,kr, htype='1')]/2
+        shn, dhn = sbesselh(nd, kr, htype='1')
+        C_nd00 = np.sqrt(2*nd+1)*shn/2
     elif function_type == 'sbesselh2':
-        C_nd00=[np.sqrt(2*nd+1)*sbesselh(nd, kr, htype='2')]/2
-    C_ndn0 = np.zeros((nd.size + 1, nd.size + 1))
+        shn, _ = sbesselh(nd, kr, htype='2')
+        C_nd00 = np.sqrt(2*nd+1)*shn/2
+    C_ndn0 = np.zeros((nd.size + 1, nd.size + 1))+0j
     C_ndn0[1:C_nd00.size+1,1] = C_nd00
     C_ndn0[1,1:C_nd00.size+1] = (-1)**(nd)*C_nd00
     for j in range(1, nmax+1):
@@ -234,14 +193,14 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
         C_ndn0[i+1, i[0]+1] = num/anm_l(i[0]-1,0)
 
         C_ndn0[i[0]+1, i+1] = (-1)**(j+i)*C_ndn0[i+1, i[0]+1]
-    C = np.zeros((nmax2+2, nmax1+1, mmax+1))
+    C = np.zeros((nmax2+2, nmax1+1, mmax+1))+0j
     C[:, :, 0] = C_ndn0[1:(nmax2+3), 1:(nmax1+2)]
     ANM = anm_l(np.arange(0, 2*nmax+2).reshape((1, -1)).T,np.arange(1, nmax+1))
     IANM = 1/ANM
     for m in range(1, mmax+1):
         nd = np.arange(m, fval-m+1)
         C_nd1m = (bnm_l(nd, -m)*C_ndn0[nd, m]-bnm_l(nd+1, m-1)*C_ndn0[nd+2, m])/bnm_l(m, -m)
-        C_ndn1 = np.zeros(C_ndn0.shape)
+        C_ndn1 = np.zeros(C_ndn0.shape)+0j
         C_ndn1[m+1:C_nd1m.size+m+1, m+1] = C_nd1m
         C_ndn1[m+1, m+1:C_nd1m.size+m+1] = (-1)**(nd+m)*C_nd1m
         for j in range(m+1, nmax+1):
@@ -257,6 +216,7 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
 
 def anm_l(n, m):
     fn = 1/(2*n+1)/(2*n+3)
+    warnings.filterwarnings("ignore")
     a_nm = np.sqrt((n+np.abs(m)+1)*(n-np.abs(m)+1)*fn)
     smaller_than_zero = np.argwhere(n < 0)
     if smaller_than_zero.size:
