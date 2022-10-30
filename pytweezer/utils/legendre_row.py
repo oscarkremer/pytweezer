@@ -24,7 +24,6 @@ def legendre_row(n, theta):
     Wnn = np.sqrt((2*n+1)/(4*np.pi)*np.prod(1-1/2/np.arange(1,n+1)))*np.ones(theta.shape)
     Wnnm1=np.sqrt(2*n)*ct*Wnn 
     lnm = np.arange(0, n+1).shape[0]
-    print(lnm)
     pnm = np.zeros((lnm, theta.shape[0]))
     pnm[-1,:] = Wnn
     pnm[-2,:] = Wnnm1
@@ -42,6 +41,5 @@ def legendre_row(n, theta):
     ST, M = np.meshgrid(st, np.arange(0, n+1))
     
     pnm = pnm*ST**M
-    print(pnm)
     return pnm
   

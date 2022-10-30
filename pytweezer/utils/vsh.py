@@ -1,3 +1,4 @@
+import numpy as np
 from .match_size import match_size
 from .spherical_harmonics import spherical_harmonics
 
@@ -30,17 +31,12 @@ def vsh(n, m, theta, phi):
     #% partner
     theta, phi = match_size(theta, phi)
     Y, Ytheta, Yphi = spherical_harmonics(n, m, theta, phi)
-'''
-%this makes the vectors go down in m for n. has no effect if old version
-%code.
 
-Z = zeros(size(Y));
+    Z = np.zeros(Y.shape)
 
-B = [Z,Ytheta,Yphi];
+    B = np.concatenate([Z, Ytheta, Yphi])
 
-C = [Z,Yphi,-Ytheta];
+    C = np.concatenate([Z, Yphi, -Ytheta])
 
-P = [Y,Z,Z];
-
-ott.warning('external');
-'''
+    P = np.concatenate([Y, Z, Z])
+    return B, C, P

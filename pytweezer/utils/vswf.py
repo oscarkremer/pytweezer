@@ -1,3 +1,11 @@
+import numpy as np
+import warnings
+warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
+from numpy import matlib as matlib
+from .match_size import match_size
+from .sbesselh import sbesselh
+from .sbesselj import sbesselj
+from .three_wide import three_wide
 from .vsh import vsh
 
 def vswf(n, m, kr, theta, phi, htype=None):
@@ -39,78 +47,69 @@ def vswf(n, m, kr, theta, phi, htype=None):
             htype = 3
         else:
             raise ValueError('Unknown htype string')
-    print(kr, theta, phi)
+
+
+    kr, theta, phi = match_size(kr, theta, phi)
+
     B, C, P = vsh(n, m, theta, phi)
+    if n > 0:
+        Nn = np.sqrt(1/(n*(n+1)))
+    else:
+        Nn = 0
+    if htype == 1:
+        if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
+            kr3 = matlib.repmat(kr,[1, m.shape[0]*3])
+            hn = matlib.repmat(sbesselh(n, kr, '1'),[1, m.shape[0]*3])
+            hn1 = matlib.repmat(sbesselh(n-1, kr, '1'),[1, m.shape[0]*3])
+        else:
+            kr3 = three_wide(kr)
+            hn = three_wide(sbesselh(n, kr, '1'))
+            hn1 = three_wide(sbesselh(n-1, kr, '1'))
+        M = Nn*hn*C
+        N = Nn*(n*(n+1)/kr3*hn*P+(hn1-n/kr3*hn)*B)
+        M2 = 0
+        N2 = 0
+        M3 = 0
+        N3 = 0
+    elif htype == 2:
+        if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
+            kr3 = matlib.repmat(kr,[1,length(m)*3])
+            hn = matlib.repmat(sbesselh(n,kr, '2'),[1,length(m)*3])
+            hn1 = matlib.repmat(sbesselh(n-1,kr, '2'),[1,length(m)*3])
+        else:
+            kr3 = three_wide(kr)
+            hn = three_wide(sbesselh(n, kr, '2'))
+            hn1 = three_wide(sbesselh(n-1,kr, '2'))
+            
+        M = Nn * hn * C
+        N = Nn * ( n*(n+1)/kr3*hn * P + (hn1 - n/kr3*hn)*B)
+        M2 = 0
+        N2 = 0
+        M3 = 0
+        N3 = 0
+    elif htype == 3:
+        if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
+            kr3 = matlib.repmat(kr,[1,length(m)*3])
+            jn = matlib.repmat(sbesselj(n,kr),[1,length(m)*3])
+            jn1 = matlib.repmat(sbesselj(n-1,kr),[1,length(m)*3])
+        else:
+            kr3 = three_wide(kr)
+            jn = three_wide(sbesselj(n, kr)[0])
+            jn1 = three_wide(sbesselj(n-1, kr)[0])
 
-#    kr = kr(:);
-#    theta = theta(:);
-#    phi = phi(:);
-'''
-
-% Check the lengths
-[kr,theta,phi] = matchsize(kr,theta,phi);
-
-[B,C,P] = vsh(n,m,theta,phi);
-if n > 0
-    Nn = sqrt(1/(n*(n+1)));
-else
-    Nn = 0;
-end
-
-switch(htype)
-    case 1
-        if length(m)>1
-            kr3=repmat(kr,[1,length(m)*3]); %makes all these suitable length
-            hn=repmat(sbesselh1(n,kr),[1,length(m)*3]);
-            hn1=repmat(sbesselh1(n-1,kr),[1,length(m)*3]);
-        else
-            kr3=threewide(kr); %makes all these suitable length
-            hn=threewide(sbesselh1(n,kr));
-            hn1=threewide(sbesselh1(n-1,kr));
-        end
-        
-        M = Nn * hn .* C;
-        N = Nn * ( n*(n+1)./kr3 .* hn .* P + ( hn1 - n./kr3 .* hn ) .* B );
-        M2 = 0; N2 = 0; M3 = 0; N3 = 0;
-    case 2
-        
-        if length(m)>1
-            kr3=repmat(kr,[1,length(m)*3]); %makes all these suitable length
-            hn=repmat(sbesselh2(n,kr),[1,length(m)*3]);
-            hn1=repmat(sbesselh2(n-1,kr),[1,length(m)*3]);
-        else
-            kr3=threewide(kr); %makes all these suitable length
-            hn=threewide(sbesselh2(n,kr));
-            hn1=threewide(sbesselh2(n-1,kr));
-        end
-        
-        M = Nn * hn .* C;
-        N = Nn * ( n*(n+1)./kr3 .* hn .* P + ( hn1 - n./kr3 .* hn ) .* B );
-        M2 = 0; N2 = 0; M3 = 0; N3 = 0;
-    case 3
-        
-        if length(m)>1
-            kr3=repmat(kr,[1,length(m)*3]); %makes all these suitable length
-            jn=repmat(sbesselj(n,kr),[1,length(m)*3]);
-            jn1=repmat(sbesselj(n-1,kr),[1,length(m)*3]);
-        else
-            kr3=threewide(kr); %makes all these suitable length
-            jn=threewide(sbesselj(n,kr));
-            jn1=threewide(sbesselj(n-1,kr));
-        end
-        
-        M = Nn * jn .* C;
-        N = Nn * ( n*(n+1)./kr3 .* jn .* P + ( jn1 - n./kr3 .* jn  ) .* B); %here is change!~!!!! get rid of jn->jn1
-        M2 = 0; N2 = 0; M3 = 0; N3 = 0;
-        
-        if n~=1
-            N(kr3==0)=0;
-        else
-            N(kr3==0)=2/3*Nn*( P(kr3==0) + B(kr3==0));
-        end
-    otherwise
-        if length(m)>1
-            kr3=repmat(kr,[1,length(m)*3]); %makes all these suitable length
+        M = Nn * jn * C
+        N = Nn * (n*(n+1)/kr3*jn*P + ( jn1 - n/kr3*jn)* B)
+        M2 = 0
+        N2 = 0
+        M3 = 0
+        N3 = 0
+        if n != 1: 
+            N[kr3==0]=0
+        else:
+            N[kr3==0] = 2/3*Nn*( P.reshape((1, -1))[kr3==0] + B.reshape((1,-1))[kr3==0])
+    else:
+        if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
+            kr3=repmat(kr,[1,length(m)*3])
             
             jn=repmat(sbesselj(n,kr),[1,length(m)*3]);
             jn1=repmat(sbesselj(n-1,kr),[1,length(m)*3]);
@@ -120,32 +119,25 @@ switch(htype)
             
             hn2=repmat(sbesselh2(n,kr),[1,length(m)*3]);
             hn21=repmat(sbesselh2(n-1,kr),[1,length(m)*3]);
-        else
-            kr3=threewide(kr); %makes all these suitable length
+        else:
+            kr3=threewide(kr)
             
-            hn2=threewide(sbesselh2(n,kr));
-            hn21=threewide(sbesselh2(n-1,kr));
-            
-            hn1=threewide(sbesselh1(n,kr));
-            hn11=threewide(sbesselh1(n-1,kr));
-            
-            jn=threewide(sbesselj(n,kr));
-            jn1=threewide(sbesselj(n-1,kr));
-        end
+            hn2=threewide(sbesselh2(n,kr))
+            hn21=threewide(sbesselh2(n-1,kr))  
+            hn1=threewide(sbesselh1(n,kr))
+            hn11=threewide(sbesselh1(n-1,kr)) 
+            jn=threewide(sbesselj(n,kr))
+            jn1=threewide(sbesselj(n-1,kr))
         
-        M = Nn * hn1 .* C;
-        N = Nn * ( n*(n+1)./kr3 .* hn1 .* P + ( hn11 - n./kr3 .* hn1 ) .* B );
-        M2 = Nn * hn2 .* C;
-        N2 = Nn * ( n*(n+1)./kr3 .* hn2 .* P + ( hn21 - n./kr3 .* hn2 ) .* B );
-        M3 = Nn * jn .* C;
-        N3 = Nn * ( n*(n+1)./kr3 .* jn .* P + ( jn1 - n./kr3 .* jn ) .* B );
-        
-        if n~=1
-            N3(kr3==0)=0;
-        else
-            N3(kr3==0)=2/3*Nn*( P(kr3==0) + B(kr3==0));
-        end
-end
+        M = Nn * hn1 * C
+        N = Nn * ( n*(n+1)/kr3* hn1 * P + ( hn11 - n/kr3 * hn1 ) * B )
+        M2 = Nn * hn2 * C
+        N2 = Nn * ( n*(n+1)/kr3 * hn2 * P + ( hn21 - n/kr3 * hn2 ) * B )
+        M3 = Nn * jn* C
+        N3 = Nn * ( n*(n+1)/kr3 * jn * P + ( jn1 - n/kr3 * jn ) * B )
+        if n!=1:
+            N3[kr3==0] = 0
+        else:
+            N3[kr3==0] = 2/3*Nn*( P[kr3==0] + B[kr3==0])
 
-ott.warning('external');
-'''
+    return M, N, M2, N2, M3, N3

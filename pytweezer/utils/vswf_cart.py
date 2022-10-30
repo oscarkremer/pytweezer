@@ -1,3 +1,5 @@
+import numpy as np
+from .rtp2xyz import rtp2xyz
 from .vswf import vswf
 
 def vswf_cart(n, m, kr, theta, phi, htype=None):
@@ -32,58 +34,42 @@ def vswf_cart(n, m, kr, theta, phi, htype=None):
     if not htype:
         htype = 0
     
-    _ = vswf(n, m, kr, theta, phi, htype)
+    M, N, _, _, _, _ = vswf(n, m, kr, theta, phi, htype)
+    x, y, z = rtp2xyz(kr,theta,phi)
+    theta_hat_x = np.cos(theta)*np.cos(phi)
+    theta_hat_y = np.cos(theta)*np.sin(phi)
+    theta_hat_z = -np.sin(theta)
+    phi_hat_x = -np.sin(phi)
+    phi_hat_y = np.cos(phi)
+    phi_hat_z = 0
 
-'''
-
-% Convert to cartesian coordinates
-[x,y,z] = rtp2xyz(kr,theta,phi);
-theta_hat_x = cos(theta) .* cos(phi);
-theta_hat_y = cos(theta) .* sin(phi);
-theta_hat_z = -sin(theta);
-phi_hat_x = -sin(phi);
-phi_hat_y = cos(phi);
-phi_hat_z = 0;
-
-% This avoids NaNs and makes debugging a little easier
-% May also provide performance improvements (untested speculation)
-kr_safe = kr;
-kr_safe(kr == 0) = 1.0;
-
-% TODO: Discuss if we actually need or even should use this
-r_hat_x = x./kr_safe;
-r_hat_y = y./kr_safe;
-r_hat_z = z./kr_safe;
-
-% The following should be equivilant to
-%   M = [sin(theta)*cos(phi) sin(theta)*sin(phi) cos(theta);
-%     cos(theta)*cos(phi) cos(theta)*sin(phi) -sin(theta);
-%     -sin(phi) cos(phi) 0].';
-%
-% This requires modifying at least r_hat_z when kr == 0.0
-r_hat_x(kr == 0) = sin(theta(kr == 0)).*cos(phi(kr == 0));
-r_hat_y(kr == 0) = sin(theta(kr == 0)).*sin(phi(kr == 0));
-r_hat_z(kr == 0) = cos(theta(kr == 0));
-
-for ii = 1:nargout
-  
-  if isempty(varargout{ii})
-    continue;
-  end
-  
-  % utils.vswf might return multiple points, split acordingly
-  npts = size(varargout{ii}, 2)/3;
-  Mr = varargout{ii}(:, 1:npts);
-  Mtheta = varargout{ii}(:, npts+(1:npts));
-  Mphi = varargout{ii}(:, 2*npts+(1:npts));
-  
-  Mx = Mr .* r_hat_x + Mtheta .* theta_hat_x + Mphi .* phi_hat_x;
-  My = Mr .* r_hat_y + Mtheta .* theta_hat_y + Mphi .* phi_hat_y;
-  Mz = Mr .* r_hat_z + Mtheta .* theta_hat_z + Mphi .* phi_hat_z;
-  
-  varargout{ii} = [Mx My Mz];
-  
-end
-
-ott.warning('external');
-'''
+    kr_safe = kr
+    if not isinstance(kr, np.ndarray):
+        if abs(kr) < 1e-15:
+            kr_safe = 1.0
+    else:
+        kr_safe[kr==0] = 1.0
+    r_hat_x = x/kr_safe
+    r_hat_y = y/kr_safe
+    r_hat_z = z/kr_safe
+    if not isinstance(kr, np.ndarray):
+        if abs(kr) < 1e-15:
+            r_hat_x = np.sin(theta)*np.cos(phi)
+            r_hat_y = np.sin(theta)*np.sin(phi)
+            r_hat_z = np.cos(theta)
+    else:
+        r_hat_x[kr==0] = np.sin(theta[kr == 0])*np.cos(phi[kr==0])
+        r_hat_y[kr==0] = np.sin(theta[kr == 0])*np.sin(phi[kr==0])
+        r_hat_z[kr==0] = np.cos(theta[kr == 0])
+    outputs = []
+    for matrix in [M, N]:
+    
+        npts = int(matrix.shape[1]/3)
+        Mr = matrix[:, :int(npts)]
+        Mtheta = matrix[:,npts:2*npts]
+        Mphi = matrix[:, 2*npts:3*npts]
+        Mx = Mr* r_hat_x + Mtheta* theta_hat_x + Mphi * phi_hat_x
+        My = Mr* r_hat_y + Mtheta* theta_hat_y + Mphi * phi_hat_y
+        Mz = Mr* r_hat_z + Mtheta* theta_hat_z + Mphi * phi_hat_z
+        outputs.append(np.array([Mx, My, Mz]))
+    return outputs[0], outputs[1]

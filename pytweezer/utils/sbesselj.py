@@ -27,7 +27,6 @@ def sbesselj(n, kr, verbose=False):
     jn = jv(n+1/2, kr)
     small_args = np.argwhere(np.abs(kr) < 1e-15)
     not_small_args = np.argwhere(np.abs(kr) > 1e-15)
-
     if (isinstance(kr, float) or isinstance(kr, int)) and abs(kr) < 1e-15:
         if verbose:
             print('Computing spherical bessel function for single parameter and small value!')
@@ -45,7 +44,8 @@ def sbesselj(n, kr, verbose=False):
             jn[not_small_args] = np.sqrt(np.pi/(2*kr[not_small_args]))*jn[not_small_args]
         if small_args.size:
             small_args = tuple(small_args.T)
-            jn[small_args] = kr[small_args]**n[small_args]/np.prod(np.arange(1, 2*n[small_args].any()+2, 2))
+
+            jn[small_args] = kr[small_args]**n[small_args].astype(float)/np.prod(np.arange(1, 2*n[small_args].all()+2, 2))
     cols = int(jn.shape[1]/2)
     djn = jn[:, cols:] - n[:, :cols]/kr[:, :cols]*jn[:, :cols]
 

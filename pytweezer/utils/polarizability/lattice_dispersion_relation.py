@@ -46,7 +46,6 @@ def lattice_dispersion_relation(spacing, index, kvec=np.array([]), E=np.array([]
                     a_hat = np.power(kvec/np.linalg.norm(kvec), 2)
                     e_hat = np.power(E/np.linalg.norm(E), 2)
                     S = np.matmul(a_hat.T, e_hat)
-                    print(S)
             else:
                 S = 0.2
             alpha_cm = clausius_mossoti(spacing, index)

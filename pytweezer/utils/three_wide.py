@@ -12,12 +12,15 @@ def three_wide(a):
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
     '''
-    if isinstance(a, float) or isinstance(a, int):
+    if isinstance(a, float) or isinstance(a, int) or isinstance(a, np.int64):
         return np.array([[a, a, a]])
     elif isinstance(a, np.ndarray):
         if len(a.shape) == 1:
             return np.array([a, a, a]).T 
         else:
-            raise ValueError('Numpy array must have one dimensional ')
+            try:
+                return np.array([a.reshape((-1)), a.reshape((-1)), a.reshape((-1))]).T
+            except:
+                raise ValueError('Numpy array must be one dimensional ')
     else:
         raise TypeError('Input must be one dimensional numpy array, integer or float.')
