@@ -59,12 +59,12 @@ def vswf(n, m, kr, theta, phi, htype=None):
     if htype == 1:
         if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
             kr3 = matlib.repmat(kr,[1, m.shape[0]*3])
-            hn = matlib.repmat(sbesselh(n, kr, '1'),[1, m.shape[0]*3])
-            hn1 = matlib.repmat(sbesselh(n-1, kr, '1'),[1, m.shape[0]*3])
+            hn = matlib.repmat(sbesselh(n, kr, '1')[0],[1, m.shape[0]*3])
+            hn1 = matlib.repmat(sbesselh(n-1, kr, '1')[0],[1, m.shape[0]*3])
         else:
             kr3 = three_wide(kr)
-            hn = three_wide(sbesselh(n, kr, '1'))
-            hn1 = three_wide(sbesselh(n-1, kr, '1'))
+            hn = three_wide(sbesselh(n, kr, '1')[0])
+            hn1 = three_wide(sbesselh(n-1, kr, '1')[0])
         M = Nn*hn*C
         N = Nn*(n*(n+1)/kr3*hn*P+(hn1-n/kr3*hn)*B)
         M2 = 0
@@ -73,13 +73,13 @@ def vswf(n, m, kr, theta, phi, htype=None):
         N3 = 0
     elif htype == 2:
         if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
-            kr3 = matlib.repmat(kr,[1,length(m)*3])
-            hn = matlib.repmat(sbesselh(n,kr, '2'),[1,length(m)*3])
-            hn1 = matlib.repmat(sbesselh(n-1,kr, '2'),[1,length(m)*3])
+            kr3 = matlib.repmat(kr,[1, m.shape[0]*3])
+            hn = matlib.repmat(sbesselh(n,kr, '2')[0], [1, m.shape[0]*3])
+            hn1 = matlib.repmat(sbesselh(n-1,kr, '2')[0], [1, m.shape[0]*3])
         else:
             kr3 = three_wide(kr)
-            hn = three_wide(sbesselh(n, kr, '2'))
-            hn1 = three_wide(sbesselh(n-1,kr, '2'))
+            hn = three_wide(sbesselh(n, kr, '2')[0])
+            hn1 = three_wide(sbesselh(n-1,kr, '2')[0])
             
         M = Nn * hn * C
         N = Nn * ( n*(n+1)/kr3*hn * P + (hn1 - n/kr3*hn)*B)
@@ -89,9 +89,9 @@ def vswf(n, m, kr, theta, phi, htype=None):
         N3 = 0
     elif htype == 3:
         if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
-            kr3 = matlib.repmat(kr,[1,length(m)*3])
-            jn = matlib.repmat(sbesselj(n,kr),[1,length(m)*3])
-            jn1 = matlib.repmat(sbesselj(n-1,kr),[1,length(m)*3])
+            kr3 = matlib.repmat(kr,[1, m.shape[0]*3])
+            jn = matlib.repmat(sbesselj(n, kr)[0],[1, m.shape[0]*3])
+            jn1 = matlib.repmat(sbesselj(n-1, kr)[0],[1, m.shape[0]*3])
         else:
             kr3 = three_wide(kr)
             jn = three_wide(sbesselj(n, kr)[0])
@@ -109,25 +109,21 @@ def vswf(n, m, kr, theta, phi, htype=None):
             N[kr3==0] = 2/3*Nn*( P.reshape((1, -1))[kr3==0] + B.reshape((1,-1))[kr3==0])
     else:
         if not (isinstance(m, int) or isinstance(m, float) or isinstance(m, np.int64)):
-            kr3=repmat(kr,[1,length(m)*3])
-            
-            jn=repmat(sbesselj(n,kr),[1,length(m)*3]);
-            jn1=repmat(sbesselj(n-1,kr),[1,length(m)*3]);
-            
-            hn1=repmat(sbesselh1(n,kr),[1,length(m)*3]);
-            hn11=repmat(sbesselh1(n-1,kr),[1,length(m)*3]);
-            
-            hn2=repmat(sbesselh2(n,kr),[1,length(m)*3]);
-            hn21=repmat(sbesselh2(n-1,kr),[1,length(m)*3]);
+            kr3 = matlib.repmat(kr,[1, m.shape[0]*3])
+            jn = matlib.repmat(sbesselj(n, kr)[0],[1, m.shape[0]*3])
+            jn1 = matlib.repmat(sbesselj(n-1, kr)[0],[1, m.shape[0]*3])
+            hn1 = matlib.repmat(sbesselh(n, kr, '1')[0],[1, m.shape[0]*3])
+            hn11 = matlib.repmat(sbesselh(n-1, kr, '1')[0], [1, m.shape[0]*3])            
+            hn2 = matlib.repmat(sbesselh(n, kr, '2')[0],[1, m.shape[0]*3])
+            hn21 = matlib.repmat(sbesselh(n-1, kr, '2')[0],[1, m.shape[0]*3])
         else:
-            kr3=threewide(kr)
-            
-            hn2=threewide(sbesselh2(n,kr))
-            hn21=threewide(sbesselh2(n-1,kr))  
-            hn1=threewide(sbesselh1(n,kr))
-            hn11=threewide(sbesselh1(n-1,kr)) 
-            jn=threewide(sbesselj(n,kr))
-            jn1=threewide(sbesselj(n-1,kr))
+            kr3 = three_wide(kr)
+            hn2 = three_wide(sbesselh(n, kr, '2')[0])
+            hn21 = three_wide(sbesselh(n-1, kr, '2')[0])  
+            hn1 = three_wide(sbesselh(n, kr, '1')[0])
+            hn11 = three_wide(sbesselh(n-1, kr, '1')[0]) 
+            jn = three_wide(sbesselj(n, kr)[0])
+            jn1 = three_wide(sbesselj(n-1, kr)[0])
         
         M = Nn * hn1 * C
         N = Nn * ( n*(n+1)/kr3* hn1 * P + ( hn11 - n/kr3 * hn1 ) * B )

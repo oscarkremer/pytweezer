@@ -20,7 +20,3 @@ def test_three_wide_computation(input_matrix, expected):
 def test_three_wide_argument_type():
     with pytest.raises(TypeError):
         three_wide('test')
-
-def test_three_wide_argument_value():
-    with pytest.raises(ValueError):
-        three_wide(np.array([[1, 1, 1]]))
