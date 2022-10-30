@@ -2,7 +2,7 @@ import numpy as np
 from .legendre_row import legendre_row
 from .match_size import match_size
 
-def spharm(n, m, theta, phi=None):
+def spherical_harmonics(n, m, theta, phi=None):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
     %
@@ -25,19 +25,18 @@ def spharm(n, m, theta, phi=None):
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
     '''
-    if not (isinstance(n, float) or (isinstance(n, int)):
+    if not (isinstance(n, float) or isinstance(n, int)):
         raise TypeError('Input parameter \'n\' must be scalar.')
     if not phi:    
         phi = theta
         theta = m
     mi = m
-    m = np.arange(-n:n+1)
-    index_bigger = np.arghwere(abs(m) <=n)
+    m = np.arange(-n,n+1)
+    index_bigger = np.argwhere(abs(m) <=n)
     if index_bigger.size:
-       m = m([tuple(index_bigger.T)])
-
-    [theta, phi] = match_size(theta, phi)
-    #input_length = 
+       m = m[tuple(index_bigger.T)]
+    theta, phi = match_size(theta, phi)
+    input_length = 
 
 
 

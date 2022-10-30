@@ -1,6 +1,6 @@
 import numpy as np
 
-def legendrerow(n, theta):
+def legendre_row(n, theta):
     '''LEGENDREROW gives the spherical coordinate recursion in m
     %
     % pnm = LEGENDREROW(n, theta) gives the spherical recursion for a given
@@ -12,7 +12,9 @@ def legendrerow(n, theta):
 
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
-    ''''
+    '''
+    pass
+    '''
     if n==0:
         pnm=1/np.sqrt(2*pi)/np.sqrt(2)
         return pnm
@@ -47,3 +49,4 @@ def legendrerow(n, theta):
 
     pnm=pnm.*ST.^(M);
     return pnm
+    '''

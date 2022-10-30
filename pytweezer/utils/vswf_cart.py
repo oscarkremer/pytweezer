@@ -1,38 +1,40 @@
-function varargout = vswfcart(n,m,kr,theta,phi,htype)
-% VSWFCART vector spherical harmonics spherical coordinate input,
-% cartesian output.
-%
-% [M1,N1,M2,N2,M3,N3] = VSWFCART(n,m,kr,theta,phi) calculates the
-% outgoing M1,N1, incomming M2,N2 and regular M3,N3 VSWF.
-% kr, theta, phi are vectors of equal length, or scalar.
-%
-% [M,N] = VSWFCART(n,m,kr,theta,phi,type) calculates only the
-% requested VSWF, where type is
-%     1 -> outgoing solution - h(1)
-%     2 -> incoming solution - h(2)
-%     3 -> regular solution - j (ie RgM, RgN)
-%
-% Scalar n,m for the moment.
-% M,N are arrays of size length(vector_input) x 3
-%
-% The three components of each input vector are [kr,theta,phi]
-% The three components of each output vector are [x,y,z]
-%
-% "Out of range" n and m result in return of [0 0 0]
-%
-% At the coordinate origin (kr == 0) we use only theta/phi.
+from .vswf import vswf
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
+def vswf_cart(n, m, kr, theta, phi, htype=None):
+    '''
+    % VSWFCART vector spherical harmonics spherical coordinate input,
+    % cartesian output.
+    %
+    % [M1,N1,M2,N2,M3,N3] = VSWFCART(n,m,kr,theta,phi) calculates the
+    % outgoing M1,N1, incomming M2,N2 and regular M3,N3 VSWF.
+    % kr, theta, phi are vectors of equal length, or scalar.
+    %
+    % [M,N] = VSWFCART(n,m,kr,theta,phi,type) calculates only the
+    % requested VSWF, where type is
+    %     1 -> outgoing solution - h(1)
+    %     2 -> incoming solution - h(2)
+    %     3 -> regular solution - j (ie RgM, RgN)
+    %
+    % Scalar n,m for the moment.
+    % M,N are arrays of size length(vector_input) x 3
+    %
+    % The three components of each input vector are [kr,theta,phi]
+    % The three components of each output vector are [x,y,z]
+    %
+    % "Out of range" n and m result in return of [0 0 0]
+    %
+    % At the coordinate origin (kr == 0) we use only theta/phi.
 
-import ott.utils.*
-ott.warning('internal');
+    % This file is part of the optical tweezers toolbox.
+    % See LICENSE.md for information about using/distributing this file.
+    '''
 
-if nargin < 6
-   htype = 0;
-end
+    if not htype:
+        htype = 0
+    
+    _ = vswf(n, m, kr, theta, phi, htype)
 
-[varargout{1:nargout}] = vswf(n,m,kr,theta,phi,htype);
+'''
 
 % Convert to cartesian coordinates
 [x,y,z] = rtp2xyz(kr,theta,phi);
@@ -84,3 +86,4 @@ for ii = 1:nargout
 end
 
 ott.warning('external');
+'''

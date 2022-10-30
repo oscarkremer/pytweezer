@@ -32,14 +32,13 @@ def match_size(*args):
     #% Loop over inputs to determine maximum size
     nmax = 0
     for arg in args: 
-        if (isinstance(arg, int) or isinstance(arg, float)) and nmax < 1:
-            nmax = 1
+        if isinstance(arg, np.int64) or isinstance(arg, int) or isinstance(arg, float):
+            nmax = max(1, nmax)
         elif arg.shape[0] > nmax:
-            nmax = arg.shape[0]
+            nmax = max(nmax, arg.shape[0])
   
-#    % Loop over inputs to check size/generate output
     for arg in args:
-        if isinstance(arg, int) or isinstance(arg, float):
+        if isinstance(arg, int) or isinstance(arg, float) or isinstance(arg, np.int64):
             nrows = 1
         else:
             nrows = arg.shape[0]

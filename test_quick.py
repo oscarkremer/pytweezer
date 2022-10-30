@@ -1,10 +1,8 @@
-from pytweezer.utils import translate_z
+from pytweezer.utils import vswf_cart
 import numpy as np
-A, B, C = translate_z(1, -np.pi/2, method='videen', function_type='sbesselh2')
 
 
-print(A, B, C)
 
-print('-----')
-for i in range(C.shape[2]):
-    print(C[:,:,i])
+rtp = np.array([0,0,0])
+
+A, B = vswf_cart(1, 0, rtp[0], rtp[1], rtp[2], 'regular')
