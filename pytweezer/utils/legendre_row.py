@@ -13,40 +13,35 @@ def legendre_row(n, theta):
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
     '''
-    pass
-    '''
     if n==0:
         pnm=1/np.sqrt(2*pi)/np.sqrt(2)
         return pnm
 
-    theta = theta(:)'
 
     ct = np.cos(theta)
     st = np.sin(theta)
 
-    Wnn=sqrt((2*n+1)/(4*pi)*prod(1-1/2./[1:n]))*ones(size(theta)); %first entry!
-    Wnnm1=sqrt(2*n)*ct.*Wnn; %second entry!
-    lnm=length([0:n]);
+    Wnn = np.sqrt((2*n+1)/(4*np.pi)*np.prod(1-1/2/np.arange(1,n+1)))*np.ones(theta.shape)
+    Wnnm1=np.sqrt(2*n)*ct*Wnn 
+    lnm = np.arange(0, n+1).shape[0]
+    print(lnm)
+    pnm = np.zeros((lnm, theta.shape[0]))
+    pnm[-1,:] = Wnn
+    pnm[-2,:] = Wnnm1
+    if lnm == 2:
+        pass
+    else:
+        jj = lnm-2
+        for i in range(n-2,-1,-1):
+            a = np.sqrt(4*(i+1)**2/(n-i)/(n+i+1))
+            b = np.sqrt((n-i-1)*(n+i+2)/(n-i)/(n+i+1))
 
-    pnm=zeros(lnm,length(theta));
-    pnm(end,:)=Wnn;
-    pnm(end-1,:)=Wnnm1;
 
-    if lnm==2;
-        pnm=[Wnnm1;Wnn];
-    else
-        jj=lnm-2;
-        for ii=n-2:-1:0
-            a=sqrt(4*(ii+1)^2/(n-ii)/(n+ii+1));
-            b=sqrt((n-ii-1)*(n+ii+2)/(n-ii)/(n+ii+1));
-            
-            pnm(jj,:)=a*ct.*pnm(jj+1,:)-b*st.^2.*pnm(jj+2,:);   %row recursion!
-            jj=jj-1;
-        end
-    end
-
-    [ST,M]=meshgrid(st,[0:n]);
-
-    pnm=pnm.*ST.^(M);
+            pnm[jj-1,:] = a*ct*pnm[jj,:]-b*st**2*pnm[jj+1,:]
+            jj = jj-1
+    ST, M = np.meshgrid(st, np.arange(0, n+1))
+    
+    pnm = pnm*ST**M
+    print(pnm)
     return pnm
-    '''
+  

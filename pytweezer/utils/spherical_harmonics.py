@@ -36,33 +36,27 @@ def spherical_harmonics(n, m, theta, phi=None):
     if index_bigger.size:
        m = m[tuple(index_bigger.T)]
     theta, phi = match_size(theta, phi)
-    input_length = 
+    input_length = theta.shape[0]
+    pnm = legendre_row(n, theta)
 
+    pnm = pnm[abs(m), :]
+    
+    phiM, mv = np.meshgrid(phi, m)
+    index_m_positive = np.argwhere(m>=0)
+    index_m_negative = np.argwhere(m<0)
 
+    pnm = np.concatenate([1/((-1)**(-mv[tuple(index_m_negative),:]))*pnm[tuple(index_m_negative),:], pnm[tuple(index_m_positive),:]])
+    pnm = pnm.reshape((pnm.shape[0], pnm.shape[1]))
+    expphi = np.exp(1j*mv*phiM)
+    
+    Y = pnm*expphi
+    expplus = np.exp(1j*phiM)
+    expminus = np.exp(-1j*phiM)
 
-    #pnm = legendrerow(n,theta);
-
-
-    #pnm = pnm(abs(m)+1,:); %pick the m's we potentially have.
-
-    #[phiM,mv]=meshgrid(phi,m);
-
-    #pnm = [(-1).^mv(m<0,:).*pnm(m<0,:);pnm(m>=0,:)];
-
-    #expphi = exp(1i*mv.*phiM);
-    #Y = pnm .* expphi;
-    #if nargout <= 1
-    #    Y=Y.';
-    #    ott.warning('external');
-    #    return
-
-    #expplus = exp(1i*phiM);
-    #expminus = exp(-1i*phiM);
-
-    '''
-    ymplus=[Y(2:end,:);zeros(1,length(theta))];
-    ymminus=[zeros(1,length(theta));Y(1:end-1,:)];
-
+    ymplus = [Y[1:,:], np.zeros((1,theta.shape[0]))]
+    ymminus = [np.zeros((1,theta.shape[0])), Y[:-1,:]]
+    print(ymplus, yminus)
+'''
     Ytheta = sqrt((n-mv+1).*(n+mv))/2 .* expplus .* ymminus ...
             - sqrt((n-mv).*(n+mv+1))/2 .* expminus .* ymplus;
 
