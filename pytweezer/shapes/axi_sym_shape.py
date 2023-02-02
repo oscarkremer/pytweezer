@@ -1,189 +1,119 @@
+import pickle
+import numpy as np
+from abc import ABC, abstractmethod
+from pytweezer.utils import matchsize, xyz2rtp
+from .cylinder import Cylinder
+from .ellipsoid import Ellipsoid
+from .sphere import Sphere
+from .superellipsoid import SuperEllipsoid
 from .shape import Shape
 
-class AxiSymShape(Shape):
-  def __init__(self):
-    pass
-"""  
-  
-%AxisymShape abstract class for axisymetric particles
-%
-% Methods
-%   - boundarypoints  calculate boudary points for surface integral
-%
-% Abstract methods
-%   - radii           Calculates the particle radii for angular coordinates
-%   - normals         Calculates the particle normals for angular coorindates
-%   - axialSymmetry   Returns x, y, z rotational symmetry (0 for infinite)
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
+class AxiSymShape(Shape, ABC):
+    
+    def __init__(self, perimeter):
+        self.perimeter = perimeter
 
-  properties
-  end
+	@abstractmethod
+	def radii(self, shape, theta, phi):
+		pass
 
-  properties (Dependent)
-    perimiter
-  end
+	@abstractmethod
+	def normals(self, shape, theta, phi):
+		pass
 
-  methods (Abstract)
-    radii(shape, theta, phi);
-    normals(shape, theta, phi);
-    axialSymmetry(shape);
+	@abstractmethod
+	def axialSymmetry(self, shape):
+		pass
 
-    get_perimiter(shape, varargin);
-  end
 
-  methods (Access=protected)
+	@abstractmethod
+	def get_perimeter(self, **kwargs):
+		pass
 
-    function npts = boundarypoints_npts(shape, varargin)
-      % Helper for boundarypoints
+    def boundary_points_npts(self, shape, npts=[], n_max=[]):
+        if not (npts or n_max):
+            raise ValueError('Must specify either npts or Nmax');
+        elif npts and n_max:
+            raise ValueError('Both number of points and Nmax specified')
+        else:
+            if npts:
+                return npts
+            else:
+                npts = np.ceil(combined_index(n_max, n_max)**(2/20)+5)
+                return npts
 
-      % Parse inputs
-      p = inputParser;
-      p.addOptional('npts', []);
-      p.addParameter('Nmax', []);
-      p.parse(varargin{:});
+    def boundary_points_area(self, shape, rho, z, rho_out, z_out, rtp):
+        dst = np.zeros((rtp.shape[0],3))
+        dst[1:-1,0] = (rho_out[2:] - rho_out[1:end-1])/2
+        dst[1:-1,2] = z_out[2:end] - z_out(1:end-1))/2
+        dst[0, 0] = rho_out[0:2].mean()-rho[0]
+        dst[0, 2] = z_out[1:2].mean() - z[0]
+        dst[-1, 0] = rho[-1] - rho_out[-2:].mean()
+        dst[-1, 2] = z[-1] - z_out[-2:].mean()
+        ds = rtp[:,0]*np.sqrt(np.power(np.abs(dst),2).sum(axis=1))*np.sin(rtp[:,1])
+        return ds
 
-      % Determine the number of points to use
-      if isempty(p.Results.npts) && isempty(p.Results.Nmax)
-        error('Must specify either npts or Nmax');
-      elseif ~isempty(p.Results.npts) && ~isempty(p.Results.Nmax)
-        error('Both number of points and Nmax specified');
-      elseif ~isempty(p.Results.npts)
-        npts = p.Results.npts;
-      else
-        Nmax = p.Results.Nmax;
-        npts = ceil(ott.utils.combined_index(Nmax, Nmax).^2/20+5);
-      end
+    def boundary_points_rhoz(self, shape, rho, z, npts=[], n_max=[]):
+        ntheta = shape.boundary_points_npts()
+        axisym = shape.axial_symmetry()
+        if axisym(3) == 0:
+            raise ValueError('Only supports axisymetric particles');
+        '''    
+        ds = shape.perimiter / ntheta / 2.0
+        s=sqrt((rho(2:end)-rho(1:end-1)).^2+(z(2:end)-z(1:end-1)).^2);
+        zout=zeros(ntheta,1);
+        rhoout=zout;
+        nxyz=zeros(ntheta,3);
+        sdeficit=0;
+        ncum=0;
+        for ii=2:length(rho)
+            N=s(ii-1)/ds;
+            Nused=round(N+sdeficit);
+            nc=[-(z(ii)-z(ii-1)),0,(rho(ii)-rho(ii-1))];
+            nc=nc/norm(nc,2);
+            if Nused>=1
+                drho=(rho(ii)-rho(ii-1))/N*ones(Nused,1);
+                rhot=cumsum(drho)-drho/2-sdeficit*drho(1);
+                rhoout(ncum+(1:Nused))=rho(ii-1)+rhot;
 
-    end
+                dz=(z(ii)-z(ii-1))/N*ones(Nused,1);
 
-    function ds = boundarypoints_area(shape, rho, z, rhoout, zout, rtp)
-      % Helper for boundarypoints
+                zt=cumsum(dz)-dz/2-sdeficit*dz(1);
+                zout(ncum+(1:Nused))=z(ii-1)+zt;
 
-      dst=zeros(size(rtp, 1),3);
+                nxyz(ncum+(1:Nused),:)=repmat(nc,[length(zt),1]);
 
-      %calcultes area elements
-      dst(2:end-1,1)=(rhoout(3:end)-rhoout(1:end-2))/2;
-      dst(2:end-1,3)=(zout(3:end)-zout(1:end-2))/2;
-      dst(1,1)=(mean(rhoout(1:2))-rho(1));
-      dst(1,3)=(mean(zout(1:2))-z(1));
-      dst(end,1)=(rho(end)-mean(rhoout(end-1:end)));
-      dst(end,3)=(z(end)-mean(zout(end-1:end)));
+                sdeficit=(N-Nused+sdeficit);
+            else
+                sdeficit=sdeficit+N;
+            ncum=ncum+Nused;
+        if ncum < ntheta
+            warning('OTT:SHAPES:AXISYMSHAPE:boundarypoints_length', ...
+            'Number of points generated does not match request');
+            zout = zout(1:ncum);
+            rhoout = zout(1:ncum);
+            nxyz = nxyz(1:ncum, :);
+        [n,rtp]=ott.utils.xyzv2rtpv(nxyz,[rhoout,zeros(size(rhoout)),zout]);
+        ds = shape.boundarypoints_area(rho, z, rhoout, zout, rtp);
+        return [rtp, n, ds]
+    '''
 
-      % a general axisymmetric conic region has the
-      % following area (sans factor of 2*pi):
-      ds=(rtp(:,1).*sqrt(sum(abs(dst).^2,2)).*sin(rtp(:,2)));
-    end
+    def get_perimiter(self, shape)
+        return shape.get_perimiter
+    
+    def boundarypoints(self, shape, varargin):
+        pass
+        '''
+        npts = shape.boundary_points_npts(varargin{:});
+        [theta, phi] = ott.utils.angulargrid(npts*2, 1);
+        theta = [0.0; theta; pi];
+        phi = [phi(1); phi; phi(end)];
+        xyz = shape.locations(theta, phi);
+        rho = xyz(:, 1);
+        z = xyz(:, 3);
 
-    function [rtp, n, ds] = boundarypoints_rhoz(shape, rho, z, varargin)
-      % Helper for boundarypoints
+        [rtp, n, ds] = shape.boundarypoints_rhoz(rho, z, varargin{:});
+        return [rtp, n, ds]
+        '''
 
-      ntheta = shape.boundarypoints_npts(varargin{:});
-
-      % Check that the point is axissymetric
-      axisym = shape.axialSymmetry();
-      if axisym(3) ~= 0
-        error('Only supports axisymetric particles');
-      end
-
-      % Calculate the point spacing
-      ds = shape.perimiter / ntheta / 2.0;
-
-      % The following is based on axisym_boundarypoints from OTTv1
-
-      % Calculate length of each line segment
-      s=sqrt((rho(2:end)-rho(1:end-1)).^2+(z(2:end)-z(1:end-1)).^2);
-
-      %Don't ask me how this works. It does. It's simple algebra in the end...
-      %and yes, it can be done more intelligently.
-      zout=zeros(ntheta,1);
-      rhoout=zout;
-      nxyz=zeros(ntheta,3);
-
-      sdeficit=0;
-      ncum=0;
-
-      for ii=2:length(rho)
-          N=s(ii-1)/ds;
-          Nused=round(N+sdeficit);
-
-          nc=[-(z(ii)-z(ii-1)),0,(rho(ii)-rho(ii-1))];
-          nc=nc/norm(nc,2);
-
-          if Nused>=1
-              drho=(rho(ii)-rho(ii-1))/N*ones(Nused,1);
-
-              rhot=cumsum(drho)-drho/2-sdeficit*drho(1);
-              rhoout(ncum+(1:Nused))=rho(ii-1)+rhot;
-
-              dz=(z(ii)-z(ii-1))/N*ones(Nused,1);
-
-              zt=cumsum(dz)-dz/2-sdeficit*dz(1);
-              zout(ncum+(1:Nused))=z(ii-1)+zt;
-
-              nxyz(ncum+(1:Nused),:)=repmat(nc,[length(zt),1]);
-
-              sdeficit=(N-Nused+sdeficit);
-          else
-              sdeficit=sdeficit+N;
-          end
-
-          ncum=ncum+Nused;
-
-      end
-      
-      % Truncate points if not allocated
-      if ncum < ntheta
-        warning('OTT:SHAPES:AXISYMSHAPE:boundarypoints_length', ...
-          'Number of points generated does not match request');
-        zout = zout(1:ncum);
-        rhoout = zout(1:ncum);
-        nxyz = nxyz(1:ncum, :);
-      end
-
-      %converts the cylindrical coordinates into spherical coordinates
-      [n,rtp]=ott.utils.xyzv2rtpv(nxyz,[rhoout,zeros(size(rhoout)),zout]);
-
-      % Calculate area elements
-      ds = shape.boundarypoints_area(rho, z, rhoout, zout, rtp);
-
-    end
-  end
-
-  methods
-
-    function p = get.perimiter(shape)
-      % Get the perimiter of the object
-      p = shape.get_perimiter();
-    end
-
-    function [rtp, n, ds] = boundarypoints(shape, varargin)
-      % BOUNDARYPOINTS calculates boundary points for surface integral
-      %
-      % [rtp, n, ds] = BOUDNARYPOINTS(npts) calculates the boundary points
-      % and surface normal vectors in spherical coordinates and the area
-      % elements of each ring.
-      %
-      % BOUNDARYPOINTS('Nmax', Nmax) takes a guess at a suitable npts
-      % for the given Nmax.
-
-      npts = shape.boundarypoints_npts(varargin{:});
-
-      % Sample points along the boundary, this isn't needed if
-      % we have a shape described by a finite set of boundary points
-      % TODO: How many points should we sample?
-      % Angular grid doesn't include top and bottom, so we add them
-      [theta, phi] = ott.utils.angulargrid(npts*2, 1);
-      theta = [0.0; theta; pi];
-      phi = [phi(1); phi; phi(end)];
-
-      xyz = shape.locations(theta, phi);
-      rho = xyz(:, 1);
-      z = xyz(:, 3);
-
-      [rtp, n, ds] = shape.boundarypoints_rhoz(rho, z, varargin{:});
-    end
-  end
-end
-"""
