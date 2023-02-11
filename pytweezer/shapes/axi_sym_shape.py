@@ -1,35 +1,29 @@
 import pickle
 import numpy as np
 from abc import ABC, abstractmethod
-from pytweezer.utils import matchsize, xyz2rtp
-from .cylinder import Cylinder
-from .ellipsoid import Ellipsoid
-from .sphere import Sphere
-from .superellipsoid import SuperEllipsoid
+from pytweezer.utils import match_size, xyz2rtp
 from .shape import Shape
 
 
-class AxiSymShape(Shape, ABC):
-    
+class AxiSymShape(Shape, ABC):    
     def __init__(self, perimeter):
         self.perimeter = perimeter
 
-	@abstractmethod
-	def radii(self, shape, theta, phi):
-		pass
+    @abstractmethod
+    def radii(self, shape, theta, phi):
+        pass
 
-	@abstractmethod
-	def normals(self, shape, theta, phi):
-		pass
+    @abstractmethod
+    def normals(self, shape, theta, phi):
+        pass
 
-	@abstractmethod
-	def axialSymmetry(self, shape):
-		pass
+    @abstractmethod
+    def axial_symmetry(self, shape):
+        pass
 
-
-	@abstractmethod
-	def get_perimeter(self, **kwargs):
-		pass
+    @abstractmethod
+    def get_perimeter(self, **kwargs):
+        pass
 
     def boundary_points_npts(self, shape, npts=[], n_max=[]):
         if not (npts or n_max):
@@ -46,7 +40,7 @@ class AxiSymShape(Shape, ABC):
     def boundary_points_area(self, shape, rho, z, rho_out, z_out, rtp):
         dst = np.zeros((rtp.shape[0],3))
         dst[1:-1,0] = (rho_out[2:] - rho_out[1:end-1])/2
-        dst[1:-1,2] = z_out[2:end] - z_out(1:end-1))/2
+        dst[1:-1,2] = (z_out[2:end] - z_out[1:end-1])/2
         dst[0, 0] = rho_out[0:2].mean()-rho[0]
         dst[0, 2] = z_out[1:2].mean() - z[0]
         dst[-1, 0] = rho[-1] - rho_out[-2:].mean()
@@ -99,10 +93,10 @@ class AxiSymShape(Shape, ABC):
         return [rtp, n, ds]
     '''
 
-    def get_perimiter(self, shape)
+    def get_perimiter(self, shape):
         return shape.get_perimiter
     
-    def boundarypoints(self, shape, varargin):
+    def boundary_points(self, shape, varargin):
         pass
         '''
         npts = shape.boundary_points_npts(varargin{:});

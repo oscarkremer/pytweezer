@@ -1,4 +1,7 @@
-class Sphere(StarShape, AxisymShape):
+from .axi_sym_shape import AxiSymShape
+from .star_shape import StarShape
+
+class Sphere(StarShape, AxiSymShape):
 
     def __init__(self, radius, position=[]):
         self.radius = radius
@@ -11,7 +14,7 @@ class Sphere(StarShape, AxisymShape):
     def get_volume(self, shape):
       v = 4/3*np.pi*np.power(shape.radius, 3)
 
-    def get_perimiter(self, shape):
+    def get_perimeter(self, shape):
       return 2.0 * np.pi * shape.radius
 
     def radii(self, shape, theta, phi):
@@ -19,12 +22,12 @@ class Sphere(StarShape, AxisymShape):
         return np.ones(theta.shape)*shape.radius
 
     def normals(self, shape, theta, phi):
-        theta, phi = matchsize(theta, phi)
+        theta, phi = match_size(theta, phi)
         return np.ones(theta.shape) * np.array([ 1, 0, 0 ])
 
     def boundarypoints(shape, **kwargs):
-        ntheta = shape.boundarypoints_npts(**kwargs)
-        theta = np.arange(0.0, (np.pi/(ntheta-1)):np.pi)
+        ntheta = shape.boundarypoints_npts(kwargs)
+        theta = np.arange(0.0, (np.pi/(ntheta-1)),np.pi)
         phi = np.zeros(theta.shape)
         xyz = shape.locations(theta, phi)
         nxyz = xyz/shape.radius

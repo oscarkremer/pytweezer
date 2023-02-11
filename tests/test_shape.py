@@ -1,51 +1,22 @@
+import pytest
+import numpy as np
+from pytweezer.shapes import Shape
 
-'''
-function tests = shape
-  tests = functiontests(localfunctions);
-end
+@pytest.mark.parametrize(
+    ('point', 'radius', 'expected'),
+    (
+          x = [0.5*0.5*rand(1, 3), 4.0];
 
-function setupOnce(testCase)
-  addpath('../../');
-end
-
-function testSimple(testCase)
-
-  import matlab.unittest.constraints.IsEqualTo;
-  import matlab.unittest.constraints.IsOfClass;
-  import matlab.unittest.constraints.RelativeTolerance;
-  tol = 1.0e-3;
-
-  r = 1.0;
-  shape = ott.shapes.Shape.simple('sphere', r);
-  testCase.verifyThat(shape, IsOfClass(?ott.shapes.Sphere), ...
-      'Incorrect shape type');
-  testCase.verifyThat(shape.perimiter, IsEqualTo(2*pi*r, ...
-      'Within', RelativeTolerance(tol)), ...
-      'Incorrect sphere radius');
-
-end
-
-function testInsideXyz(testCase)
-
-  radius = 1.0;
-  shape = ott.shapes.Shape.simple('sphere', radius);
-  
-  % Choose three points inside the shape and one outside
-  b = [true, true, true, false].';
-  x = [0.5*radius.*rand(1, 3), 4.0];
-  y = [0.5*radius.*rand(1, 3), 4.0];
-  z = [0.5*radius.*rand(1, 3), 4.0];
-  
-  xyz = [x(:), y(:), z(:)].';
-  
-  testCase.verifyEqual(shape.insideXyz(x, y, z), b, ...
-    'insideXyz with 3 arguments failed');
-  testCase.verifyEqual(shape.insideXyz(xyz), b, ...
-    'insideXyz with 1 argument failed');
-  
-  testCase.verifyEqual(shape.insideXyz(x, y, z, 'origin', 'world'), b, ...
-    'insideXyz with 3 arguments failed and optional arg');
-  testCase.verifyEqual(shape.insideXyz(xyz, 'origin', 'world'), b, ...
-    'insideXyz with 1 argument failed and optional arg');
-end
-'''
+          id='Inside point case 1'),
+    )
+)
+def test_sphere_shape(point, radius, expected):
+    decimal = 3
+    shape = Shape.simple('sphere', r=radius)
+    if style not in ('column', 'matrix', 'points'):
+        with pytest.raises(ValueError):
+            theta, phi = angular_grid(input_x[0], input_x[1], style)
+    else:
+        theta, phi = angular_grid(input_x[0], input_x[1], style)
+        np.testing.assert_array_almost_equal(theta, expected[0], decimal=decimal, err_msg='Theta failed test for equality')
+        np.testing.assert_array_almost_equal(phi, expected[1], decimal=decimal, err_msg='Phi failed test for equality')

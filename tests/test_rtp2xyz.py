@@ -15,7 +15,7 @@ def test_rtp2xyz():
     np.testing.assert_array_almost_equal(y, expected_y, decimal=decimal, err_msg='Conversion from spherical to cartesian error in Y')
     np.testing.assert_array_almost_equal(z, expected_z, decimal=decimal, err_msg='Conversion from spherical to cartesian error in Z')
 
-def test_xyz2rt2():
+def test_xyz2rtp():
     decimal = 3
     x = np.zeros(10)
     y = np.linspace(1, 11, 10)

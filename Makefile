@@ -36,16 +36,6 @@ dirs:	## Make command to create folder for results dataframes.
 test:
 	@coverage run -m pytest tests/ -v
 
-grid-search: ##Method to grid-search between all classification and oversampling algorithms
-	@echo "---> Running Grid Search on dataset"
-	@$(PYTHON_INTERPRETER) src/api/grid_search.py --iterations $(ITERATIONS) --dataset $(DATASET)
-
-
-permutation: ##Method to grid-search between all classification and oversampling algorithms
-	@echo "---> Running Grid Search on dataset"
-	@$(PYTHON_INTERPRETER) src/api/permutation.py --dataset $(DATASET)
-
-
 help:	## Help method to list all available commands.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
  
