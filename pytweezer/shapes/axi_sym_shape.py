@@ -25,19 +25,20 @@ class AxiSymShape(Shape, ABC):
     def get_perimeter(self, **kwargs):
         pass
 
-    def boundary_points_npts(self, shape, npts=[], n_max=[]):
-        if not (npts or n_max):
+    def boundary_points_npts(self, **kwargs):
+        
+        if not (kwargs.get('npts') or kwargs.get('n_max')):
             raise ValueError('Must specify either npts or Nmax');
-        elif npts and n_max:
+        elif kwargs.get('npts') and kwargs.get('n_max'):
             raise ValueError('Both number of points and Nmax specified')
         else:
-            if npts:
-                return npts
+            if kwargs.get('npts'):
+                return kwargs.get('npts')
             else:
                 npts = np.ceil(combined_index(n_max, n_max)**(2/20)+5)
                 return npts
 
-    def boundary_points_area(self, shape, rho, z, rho_out, z_out, rtp):
+    def boundary_points_area(self, rho, z, rho_out, z_out, rtp):
         dst = np.zeros((rtp.shape[0],3))
         dst[1:-1,0] = (rho_out[2:] - rho_out[1:end-1])/2
         dst[1:-1,2] = (z_out[2:end] - z_out[1:end-1])/2

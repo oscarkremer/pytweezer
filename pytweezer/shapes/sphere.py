@@ -1,7 +1,7 @@
 import numpy as np
 from .axi_sym_shape import AxiSymShape
 from .star_shape import StarShape
-from pytweezer.utils import angular_grid, match_size, xyz2rtp, rtp2xyz
+from pytweezer.utils import angular_grid, match_size, xyz2rtp, xyzv2rtp, rtp2xyz
 
 class Sphere(StarShape, AxiSymShape):
 
@@ -31,13 +31,13 @@ class Sphere(StarShape, AxiSymShape):
         return np.ones(theta.shape) * np.array([ 1, 0, 0 ])
 
     def boundary_points(self, **kwargs):
-        ntheta = self.boundary_points_npts(kwargs)
-        theta = np.arange(0.0, (np.pi/(ntheta-1)),np.pi)
+        ntheta = self.boundary_points_npts(**kwargs)
+        theta = np.arange(0.0, np.pi+np.pi/(ntheta-1), np.pi/(ntheta-1))
         phi = np.zeros(theta.shape)
-        xyz = shape.locations(theta, phi)
-        nxyz = xyz/self.__radius__
-        n, rtp = xyzv2rtpv(nxyz, xyz)
-        ds = boundary_points_area(xyz[:, 0], xyz[:, 2], xyz[:, 0], xyz[:, 2], rtp)
+        x, y, z = self.locations(theta, phi)
+        nx, ny, nz = x/self.__radius__, y/self.__radius__, z/self.__radius__
+        n, r, t, p = xyzv2rtpv(nx, ny, nz, x, y, z)
+        ds = boundary_points_area(x, y, z, z, rtp)
         return rtp, n, ds
 
     def axial_symmetry(self, shape):

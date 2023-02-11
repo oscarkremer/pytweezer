@@ -28,19 +28,17 @@ class StarShape(Shape, ABC):
             orthSym(1) | orthSym(3), orthSym(1) | orthSym(2) ]
         return varargout
 
-    def locations(shape, theta, phi):
-        theta = theta[:]
-        phi = phi[:]
-        theta, phi = matchsize(theta, phi)
-        return rtp2xyz(shape.radii(theta, phi), theta, phi)
+    def locations(self, theta, phi):
+        theta, phi = match_size(theta, phi)
+        return rtp2xyz(self.radii(theta, phi), theta, phi)
 
-    def surf(self, shape, points=[], n_points=[100,100], surf_options=[], position=[], rotation=[], axes=[]):
+    def surf(self, points=[], n_points=[100,100], surf_options=[], position=[], rotation=[], axes=[]):
         if not points:
             sz = npoints
             if sz.size == 1:
                 sz = np.array([sz, sz])
 
-            theta, phi = shape.angulargrid('full', true, 'size', sz)
+            theta, phi = self.angulargrid('full', true, 'size', sz)
         else:
             theta = points[0]
             phi = points[1]
@@ -50,14 +48,14 @@ class StarShape(Shape, ABC):
             elif size(theta) != size(phi):
                 raise ValueError('theta and phi must be vectors or matricies of the same size');    
             sz = theta.shape
-        X, Y, Z = shape.locations(theta, phi)
-        if ~isempty(p.Results.rotation):
+        X, Y, Z = self.locations(theta, phi)
+        if not isempty(p.Results.rotation):
             XYZ = np.array([X, Y, Z]).T
             XYZ = p.Results.rotation * XYZ;
             X = XYZ[1, :]
             Y = XYZ[2, :]
             Z = XYZ[3, :]
-        if ~isempty(p.Results.position):
+        if not isempty(p.Results.position):
             X = X + p.Results.position(1)
             Y = Y + p.Results.position(2)
             Z = Z + p.Results.position(3)
