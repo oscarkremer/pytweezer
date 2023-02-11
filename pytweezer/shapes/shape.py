@@ -40,7 +40,7 @@ class Shape(ABC):
         pass
 
     @abstractmethod
-    def get_maxRadius(self, shape):
+    def get_max_radius(self, shape):
         pass
 
     @abstractmethod
@@ -61,12 +61,6 @@ class Shape(ABC):
         with open('filename.pickle', 'rb') as handle:
             b = pickle.load(handle)
       
-    def getMaxRadius(self, shape):
-        return shape.getMaxRadius()  
-
-    def getVolume(self, shape):
-        return shape.getVolume()
-
     def writeWavefrontObj(self, filename):
         '''
         Write representation of shape to Wavefront OBJ file
@@ -130,7 +124,7 @@ class Shape(ABC):
         if not inline:
             return insideXyz
 
-    def insideXyz(self, shape, x, y=np.array([]), z=np.array([]), origin='world'):
+    def inside_xyz(self, shape, x, y=np.array([]), z=np.array([]), origin='world'):
         if not y or not z:
             y = x[1, :]
             z = x[2, :]
@@ -139,7 +133,7 @@ class Shape(ABC):
             x = x.T
             y = z.T
             z = z.T
-            x, y, z = matchsize(x, y, z)
+            x, y, z = match_size(x, y, z)
         else:
             raise ValueError('Must suply either 3xN matrix or x, y and z')
         if origin.lower() == 'world':

@@ -1,38 +1,43 @@
+import numpy as np
 from .axi_sym_shape import AxiSymShape
 from .star_shape import StarShape
+from pytweezer.utils import angular_grid, match_size, xyz2rtp, rtp2xyz
 
 class Sphere(StarShape, AxiSymShape):
 
     def __init__(self, radius, position=[]):
-        self.radius = radius
+        self.__radius__ = radius
         if position:
             self.position = position
+        self.perimeter = self.get_perimeter()
+        self.volume = self.get_volume()
 
-    def get_maxRadius(self, shape):
-        return shape.radius
+    def get_max_radius(self):
+        return self.__radius__
 
-    def get_volume(self, shape):
-      v = 4/3*np.pi*np.power(shape.radius, 3)
+    def get_volume(self):
+        return 4/3*np.pi*np.power(self.__radius__, 3)
 
-    def get_perimeter(self, shape):
-      return 2.0 * np.pi * shape.radius
+    def get_perimeter(self):
+      return 2.0 * np.pi * self.__radius__
 
-    def radii(self, shape, theta, phi):
-        theta, phi = matchsize(theta, phi)
-        return np.ones(theta.shape)*shape.radius
+    def radii(self, theta, phi):
+        theta, phi = match_size(theta, phi)
+        print(theta)
+        return np.ones(theta.shape)*self.__radius__
 
-    def normals(self, shape, theta, phi):
+    def normals(self, theta, phi):
         theta, phi = match_size(theta, phi)
         return np.ones(theta.shape) * np.array([ 1, 0, 0 ])
 
-    def boundarypoints(shape, **kwargs):
-        ntheta = shape.boundarypoints_npts(kwargs)
+    def boundary_points(self, **kwargs):
+        ntheta = self.boundary_points_npts(kwargs)
         theta = np.arange(0.0, (np.pi/(ntheta-1)),np.pi)
         phi = np.zeros(theta.shape)
         xyz = shape.locations(theta, phi)
-        nxyz = xyz/shape.radius
+        nxyz = xyz/self.__radius__
         n, rtp = xyzv2rtpv(nxyz, xyz)
-        ds = boundarypoints_area(xyz[:, 0], xyz[:, 2], xyz[:, 0], xyz[:, 2], rtp)
+        ds = boundary_points_area(xyz[:, 0], xyz[:, 2], xyz[:, 0], xyz[:, 2], rtp)
         return rtp, n, ds
 
     def axial_symmetry(self, shape):

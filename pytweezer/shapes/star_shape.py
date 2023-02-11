@@ -22,7 +22,6 @@ class StarShape(Shape, ABC):
         pass
 
     def mirror_symmetry(self, shape):
-
         axialSym = shape.axialSymmetry()
         orthSym = mod(axialSym, 2) == 0
         mirrorSym = [ orthSym(2) | orthSym(3),
@@ -106,55 +105,46 @@ class StarShape(Shape, ABC):
         '''
         pass
 
-    def normalsXyz(self, shape, theta, phi):
+    def normals_xyz(self, shape, theta, phi):
         [theta,phi] = ott.utils.matchsize(theta, phi)
         n = rtpv2xyzv(shape.normals(theta, phi), ...
             [ zeros(size(theta)), theta, phi ]);
         return n
 
-    def inside(self, shape, radius, theta, phi, varargin):
-      p = inputParser
-      p.addParameter('origin', 'world');
-      p.parse(varargin)
-
-      [radius,theta,phi] = match_size(radius,theta,phi);
-      if strcmpi(p.Results.origin, 'world'):
-        if vecnorm(shape.position) != 0:
-            [x,y,z] = rtp2xyz(radius, theta, phi)
-            x = x - shape.position(1)
-            y = y - shape.position(2)
-            z = z - shape.position(3)
-            [radius, theta, phi] = ott.utils.xyz2rtp(x, y, z)
+    def inside(self, radius, theta, phi, origin='shape'):
+ 
+        radius, theta, phi = match_size(radius, theta, phi)
+        if origin == 'world':
+            if vecnorm(shape.position) != 0:
+                x, y, z = rtp2xyz(radius, theta, phi)
+                x = x - shape.position[0]
+                y = y - shape.position[1]
+                z = z - shape.position[2]
+                radius, theta, phi = xyz2rtp(x, y, z)
         elif origin=='shape':
             pass
         else:
             raise ValeuError('origin must be ''world'' or ''shape''');
 
-      assert(all(radius >= 0), 'Radii must be positive')
+        assert(all(radius >= 0), 'Radii must be positive')
 
-      r = shape.radii(theta, phi);
-      b = radius < r
+        r = self.radii(theta, phi)
+        b = radius < r
+        return b
 
-    def insideXyz(self, shape, varargin):
-        if isempty(p.Results.y) and isempty(p.Results.z):
-            x = p.Results.x[0, :]
-            y = p.Results.x[1, :]
-            z = p.Results.x[2, :]
-        else:
-            x = p.Results.x[:]
-            y = p.Results.y[:]
-            z = p.Results.z[:]
-            [x, y, z] = match_size(x, y, z)
+    def inside_xyz(self, x, y, z, origin='shape'):
+        x, y, z = match_size(x, y, z)
+        print('match_size-insidexyz', x,y,z)
         if origin == 'world':
-            x = x - shape.position(1)
-            y = y - shape.position(2)
-            z = z - shape.position(3)
+            x = x - self.position[0]
+            y = y - self.position[1]
+            z = z - self.position[2]
         elif origin == 'shape':
             pass
         else:
             raise ValueError('origin must be ''world'' or ''shape''');
-        [r, t, p] = xyz2rtp(x, y, z)
-        b = shape.inside(r, t, p, 'origin', 'shape')
+        r, t, p = xyz2rtp(x, y, z)
+        b = self.inside(r, t, p, origin='shape')
         return b
 
     def angulargrid(self, shape, varargin):

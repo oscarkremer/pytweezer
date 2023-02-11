@@ -92,9 +92,6 @@ class AxiSymShape(Shape, ABC):
         ds = shape.boundarypoints_area(rho, z, rhoout, zout, rtp);
         return [rtp, n, ds]
     '''
-
-    def get_perimiter(self, shape):
-        return shape.get_perimiter
     
     def boundary_points(self, shape, varargin):
         pass

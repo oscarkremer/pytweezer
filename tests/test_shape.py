@@ -1,22 +1,25 @@
 import pytest
 import numpy as np
-from pytweezer.shapes import Shape
+from pytweezer.shapes import Sphere
 
-@pytest.mark.parametrize(
-    ('point', 'radius', 'expected'),
-    (
-          x = [0.5*0.5*rand(1, 3), 4.0];
-
-          id='Inside point case 1'),
-    )
-)
-def test_sphere_shape(point, radius, expected):
+def test_sphere_perimeter():
     decimal = 3
-    shape = Shape.simple('sphere', r=radius)
-    if style not in ('column', 'matrix', 'points'):
-        with pytest.raises(ValueError):
-            theta, phi = angular_grid(input_x[0], input_x[1], style)
-    else:
-        theta, phi = angular_grid(input_x[0], input_x[1], style)
-        np.testing.assert_array_almost_equal(theta, expected[0], decimal=decimal, err_msg='Theta failed test for equality')
-        np.testing.assert_array_almost_equal(phi, expected[1], decimal=decimal, err_msg='Phi failed test for equality')
+    radius = 1 
+    shape = Sphere(radius)
+    np.testing.assert_array_almost_equal(shape.perimeter, 6.2832, decimal=decimal, err_msg='Error computing perimeter of sphere')
+
+def test_sphere_volume():
+    decimal = 3
+    radius = 1 
+    shape = Sphere(radius)
+    np.testing.assert_array_almost_equal(shape.volume, 4.1888, decimal=decimal, err_msg='Error computing volume of sphere')
+
+
+def test_sphere_inside():
+    radius = 1
+    shape = Sphere(radius)
+    x = np.append(0.5*1*np.random.rand(1, 3), 4.0)
+    y = np.append(0.5*1*np.random.rand(1, 3), 4.0)
+    z = np.append(0.5*1*np.random.rand(1, 3), 4.0)
+    for value, expected in zip(shape.inside_xyz(x,y,z), [True, True, True, False]):
+        assert value==expected, 'Error in inside_xyz method for Spherical Shape'
