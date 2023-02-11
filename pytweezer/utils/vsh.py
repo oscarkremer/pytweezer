@@ -25,18 +25,10 @@ def vsh(n, m, theta, phi):
 
     if not isinstance(n, int) and not isinstance(n, float):
         raise TypeError('Input parameter \'n\' must be scalar.')
-
-
-    #    % Convert a scalar theta or phi to a vector to match a vector
-    #% partner
     theta, phi = match_size(theta, phi)
     Y, Ytheta, Yphi = spherical_harmonics(n, m, theta, phi)
-
     Z = np.zeros(Y.shape)
-
     B = np.concatenate([Z, Ytheta, Yphi])
-
     C = np.concatenate([Z, Yphi, -Ytheta])
-
     P = np.concatenate([Y, Z, Z])
     return B, C, P
