@@ -1,49 +1,8 @@
-function [ modeweights col_modes row_modes ] = paraxial_transformation_matrix( paraxial_order, basis_in, basis_out, normal_mode )
-% PARAXIAL_TRANSFORMATION_MATRIX produces paraxial beam mode conversion
-% in a particular order.
-%
-% [modeweights, col_modes, row_modes] = ...
-%   PARAXIAL_TRANSFORMATION_MATRIX(degree, basis_in, basis_out) or
-% [modeweights, col_modes, row_modes] = ...
-%   PARAXIAL_TRANSFORMATION_MATRIX( degree, basis_in, basis_out, normal_mode)
-%
-% inputs:
-%
-% degree : paraxial degree of modes e.g. gaussian is 0.
-% basis_in : 0 vortex LG, 1 vortex HG, [2,xi] vortex IG.
-% basis_out : 0 LG, 1 HG, [2,xi] IG.
-% normal_mode : 0 is default vortex->non-vortex. (because of toolbox modes)
-%               1 makes the conversion non-vortex->non-vortex.
-%
-% outputs:
-%
-% modeweights : weights of the conversion basis_in->basis_out. Format: each
-%               row is the corresponding mode of the output basis, each
-%               column for the input basis, such that
-%               conj. tranpose(basis_1 --> basis_2) = basis_2 --> basis_1.
-%               holds for (vortex->non-vortex)' == non-vortex->vortex.
-% col_modes :   outputs the LG, HG or IG indices corresponding to each
-%               COLUMN of the matrix. [p,l], [m,n], [o,m,p].
-% row_modes :   outputs the LG, HG or IG indices corresponding to each ROW
-%               of the matrix. [p,l], [m,n], [o,m,p].
+def paraxial_transformation_matrix( paraxial_order, basis_in, basis_out, normal_mode )
+    if nargin==3
+        normal_mode=0;
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
-
-ott.warning('internal');
-
-if nargin==3
-    normal_mode=0;
-end
-
-% We need to have complete transformations of LG->HG->IG (non-vortex) we
-% need three types of matrix. As it is bothersome to re-arrange the matrix
-% to find symmetric and anti-symmetric parts I also compute these as well.
-% These computations are recursive to avoid clutter in the toolbox
-% directory. The code blocks conatin redundant outputs which used to go to 
-% look-up functions.
-
-switch 100*normal_mode+10*basis_in(1)+basis_out(1)
+    switch 100*normal_mode+10*basis_in(1)+basis_out(1)
     case 000
         modeweights=genLG2IG(paraxial_order,0);
     case 001
@@ -125,9 +84,9 @@ col_modes=[i1_in,i2_in,i3_in];
 
 ott.warning('external');
 
-end
+    return [ modeweights col_modes row_modes ]
 
-function [output,LGlookups,HGlookups]=genLG2HG(order_paraxial);
+def [output,LGlookups,HGlookups]=genLG2HG(order_paraxial);
 % genLG2HG.m --- LG->HG conversion matrix.
 %
 % Usage:
