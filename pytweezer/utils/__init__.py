@@ -1,5 +1,6 @@
 from .angular_grid import angular_grid
 from .combined_index import combined_index
+from .laguerre import laguerre
 from .legendre_row import legendre_row
 from .match_size import match_size
 from .n_max_2ka import n_max_2ka
@@ -20,6 +21,7 @@ from .xyzv2rtpv import xyzv2rtpv
 __all__ = [
     'angular_grid',
     'combined_index',
+    'laguerre',
     'legendre_row',
     'match_size',
     'n_max_2ka',
