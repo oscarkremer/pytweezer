@@ -15,12 +15,12 @@ def xyzv2rtpv(xv, yv, zv, x=np.array([]), y=np.array([]), z=np.array([])):
     % See LICENSE.md for information about using/distributing this file.
     '''
     r, theta, phi = xyz2rtp(x, y, z)
-    J = np.array([[np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)],
-            [np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi),-np.sin(theta)],
-            [-np.sin(phi), np.cos(phi), np.zeros(theta.shape[0])]])
-    print(J)
-    xyzv=[xv,yv,zv]
-    rv = dot(J[1:length(theta),:],xyzv,2)
-    thetav = dot(J[length(theta)+1:2*length(theta),:],xyzv,2);
-    phiv = dot(J[2*length(theta)+1:3*length(theta),:],xyzv,2);
+    J1 = np.array([np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]).T
+    J2 = np.array([np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi),-np.sin(theta)]).T
+    J3 = np.array([-np.sin(phi), np.cos(phi), np.zeros(theta.shape[0])]).T
+    J = np.concatenate([J1, J2, J3], axis=0)
+    xyzv = np.array([xv, yv, zv]).T
+    rv = np.sum(J[:theta.shape[0],:].conj()*xyzv, axis=1)
+    thetav = np.sum(J[theta.shape[0]:2*theta.shape[0],:].conj()*xyzv, axis=1)
+    phiv = np.sum(J[2*theta.shape[0]:,:].conj()*xyzv, axis=1)
     return rv, thetav, phiv, r, theta, phi

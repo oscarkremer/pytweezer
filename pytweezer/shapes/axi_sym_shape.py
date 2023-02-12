@@ -38,7 +38,7 @@ class AxiSymShape(Shape, ABC):
                 npts = np.ceil(combined_index(n_max, n_max)**(2/20)+5)
                 return npts
 
-    def boundary_points_area(self, rho, z, rho_out, z_out, rtp):
+    def boundary_points_area(self, rho, z, rho_out, z_out, r, t, p):
         dst = np.zeros((rtp.shape[0],3))
         dst[1:-1,0] = (rho_out[2:] - rho_out[1:end-1])/2
         dst[1:-1,2] = (z_out[2:end] - z_out[1:end-1])/2
@@ -94,18 +94,22 @@ class AxiSymShape(Shape, ABC):
         return [rtp, n, ds]
     '''
     
-    def boundary_points(self, shape, varargin):
-        pass
+    def boundary_points(self, **kwargs):
+        '''        % BOUNDARYPOINTS calculates boundary points for surface integral
+        %
+        % [rtp, n, ds] = BOUDNARYPOINTS(npts) calculates the boundary points
+        % and surface normal vectors in spherical coordinates and the area
+        % elements of each ring.
+        %
+        % BOUNDARYPOINTS('Nmax', Nmax) takes a guess at a suitable npts
+            % for the given Nmax.
         '''
-        npts = shape.boundary_points_npts(varargin{:});
-        [theta, phi] = ott.utils.angulargrid(npts*2, 1);
-        theta = [0.0; theta; pi];
-        phi = [phi(1); phi; phi(end)];
-        xyz = shape.locations(theta, phi);
-        rho = xyz(:, 1);
-        z = xyz(:, 3);
-
-        [rtp, n, ds] = shape.boundarypoints_rhoz(rho, z, varargin{:});
-        return [rtp, n, ds]
-        '''
-
+        npts = self.boundary_points_npts(**kwargs)
+        theta, phi = self.angulargrid(2*npts, 1)
+        theta = [0.0; theta; pi]
+        phi = [phi(1); phi; phi(end)]
+        xyz = self.locations(theta, phi);
+        rho = xyz[:, 0]
+        z = xyz[:, 2]
+        rtp, n, ds = self.boundary_points_rhoz(rho, z, **kwargs)
+        return rtp, n, ds
