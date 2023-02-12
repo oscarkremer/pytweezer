@@ -9,7 +9,7 @@ def n_max_2ka(n_max):
     % This file is part of the optical tweezers toolbox.
     % See LICENSE.md for information about using/distributing this file.
     '''
-    for i in range(1:length(Nmax))
-        kas = roots([1 (-3*Nmax(ii)) (27+3*Nmax(ii).^2) (-Nmax(ii).^3)]);
+    for i in range(1, length(n_max)):
+        kas = roots([1, (-3*n_max[i]), (27+3*n_max[i]**2), (-n_max[i]**3)]);
         ka[i] = kas[2]
     return ka 

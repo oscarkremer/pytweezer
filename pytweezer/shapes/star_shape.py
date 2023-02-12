@@ -115,9 +115,9 @@ class StarShape(Shape, ABC):
         return xyz
     
     def normals_xyz(self, shape, theta, phi):
-        [theta,phi] = ott.utils.matchsize(theta, phi)
-        n = rtpv2xyzv(shape.normals(theta, phi), ...
-            [ zeros(size(theta)), theta, phi ]);
+        theta, phi = match_size(theta, phi)
+        n = rtpv2xyzv(shape.normals(theta, phi),
+            [np.zeros(theta.shape), theta, phi ])
         return n
 
     def inside(self, radius, theta, phi, origin='shape'):
