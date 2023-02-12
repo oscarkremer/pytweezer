@@ -3,25 +3,31 @@ import numpy as np
 from pytweezer.utils import combined_index, translate_z
 
 class Beam:
-    def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
+    def __init__(self, a, b, basis, portion, k_m=2*np.pi, omega=2*np.pi, dz=0):
         self.dz = dz
         self.k_medium = k_m
         self.omega = omega
 
         assert a.shape==b.shape, 'Mismatch between the shapes of the coefficients'      
         if isinstance(a, np.ndarray):
-            if len(a.shape) = 1
+            if len(a.shape) == 1:
                 a = a.reshape((a.shape[0], 1))
         if isinstance(b, np.ndarray):
-            if len(b.shape) = 1
+            if len(b.shape) == 1:
                 b = b.reshape((b.shape[0], 1))
         assert a.shape[0] >= 3, 'Number of multiploe must be at least 3'
-        assert np.sqrt(a.shape[0]+1) == np.floor(np.sqrt(a.shape[0]+1)), 
-            'Number of multipoles must be 3, 8, 15, 24, ...'
+        assert np.sqrt(a.shape[0]+1) == np.floor(np.sqrt(a.shape[0]+1)), 'Number of multipoles must be 3, 8, 15, 24, ...'
         self.a = a
         self.b = b
         self.basis = basis
-        self.type = beam_type
+        self.portion = beam_type
+
+    @staticmethod
+    def compute_k_medium(self, index_m, lambda_0):
+        if index_m < 0 or lambda_0 < 0:
+            raise ValueError('Wavelength and refractive index cannot be negative.')
+        else:
+            self.k_m = kwargs.get('index_m')*2*np.pi/kwargs.get('lambda_0')
 
 
 '''
@@ -153,6 +159,10 @@ class Beam:
     end
   end
 '''
+
+
+
+'''
     @staticmethod
     def make_beam_vector(self, a, b, n, m, n_max):
         if not n.shape or not n:
@@ -174,23 +184,7 @@ class Beam:
         return a, b, n, m
 
 
-    @staticmethod
-    def parser_k_medium(self, **kwargs):
-        if kwargs.get('k_m') and kwargs.get('lambda_m'):
-            self.k_m = kwargs.get('k_m')
-            warnings.warn('Both k_m and lambda_m defined, only k_m is going to \
-                be used.')
-        elif kwargs.get('k_m'):
-            self.k_m = kwargs.get('k_m')
-        elif kwargs.get('lambda_m'):
-            self.k_m = 2.0*np.pi/kwargs['lambda_m']
-        elif kwargs.get('index_m'):
-            if kwargs.get('lambda_0'):   
-                self.k_m = kwargs.get('index_m')*2*np.pi/kwargs.get('lambda_0')
-            else:
-                raise ValueError('Wavelength for vacuum must be specified to use medium refraction index')
-        else:
-            raise ValueError('Unable to determine k_medium from inputs')
+    
     
     def translate_z_type_helper(self, z, n_max):
         if self.basis == 'incoming':
@@ -211,7 +205,7 @@ class Beam:
             other.n_max = self.n_max
             self.a = [self.a, other.a]
             self.b = [self.b, other.b]
-
+'''
 
 '''
     def paraxial_far_field(self, varargin)

@@ -2,7 +2,7 @@ import numpy as np
 from .legendre_row import legendre_row
 from .match_size import match_size
 
-def spherical_harmonics(n, m, theta, phi=None):
+def spherical_harmonics(n, m, theta, phi=np.array([])):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
     %
@@ -27,7 +27,7 @@ def spherical_harmonics(n, m, theta, phi=None):
     '''
     if not (isinstance(n, float) or isinstance(n, int)):
         raise TypeError('Input parameter \'n\' must be scalar.')
-    if not phi:    
+    if not phi.size:    
         phi = theta
         theta = m
     mi = m

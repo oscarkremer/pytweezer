@@ -40,6 +40,6 @@ def legendre_row(n, theta):
             jj = jj-1
     ST, M = np.meshgrid(st, np.arange(0, n+1))
     
-    pnm = pnm*ST**M
+    pnm = pnm*np.power(ST, M)
     return pnm
   

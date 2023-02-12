@@ -1,19 +1,16 @@
-def paraxial_transformation_matrix( paraxial_order, basis_in, basis_out, normal_mode )
-    if nargin==3
-        normal_mode=0;
-
-    switch 100*normal_mode+10*basis_in(1)+basis_out(1)
-    case 000
+def paraxial_transformation_matrix(paraxial_order, basis_in, basis_out, normal_mode=0)
+    order = int(100*normal_mode)+10*basis_in[0] + basis_out[1])
+    if order == 0:
         modeweights=genLG2IG(paraxial_order,0);
-    case 001
+    elif order == 1:
         modeweights=genLG2HG(paraxial_order);
-    case 002
+    elif order == 2:
         modeweights=genLG2IG(paraxial_order,basis_out(2));
-    case 010
+    elif order == 10:
         modeweights=genLG2IG(paraxial_order,0)*genLG2vHG(paraxial_order)';
-    case 011
+    case order == 11:
         modeweights=genLG2HG(paraxial_order)*genLG2vHG(paraxial_order)';
-    case 012
+    case order == 12:
         modeweights=genLG2IG(paraxial_order,basis_out(2))*genLG2vHG(paraxial_order)';
     case 020
         modeweights=genLG2IG(paraxial_order,0)*genLG2vIG(paraxial_order,basis_in(2))';
