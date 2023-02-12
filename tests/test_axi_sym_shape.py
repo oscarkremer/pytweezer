@@ -8,7 +8,7 @@ def test_sphere_boundary_points():
     shape = Sphere(radius)
     np.testing.assert_array_almost_equal(shape.perimeter, 6.2832, decimal=decimal, err_msg='Error computing perimeter of sphere')
     numr = 100
-    rtp, n, ds = shape.boundary_points(npts=numr)
+    r, t, p, n_rho, n_theta, n_phi, ds = shape.boundary_points(npts=numr)
 '''
   testCase.verifyThat(length(rtp(:, 1)), IsEqualTo(numr), ...
       'Incorrect number of values returned');

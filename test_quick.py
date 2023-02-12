@@ -5,4 +5,4 @@ radius = 1
 shape = Sphere(radius)
 numr=100
 #    [True, True, True, False]
-rtp, n, ds = shape.boundary_points(npts=numr)
+r, t, p, n_rho, n_theta, n_phi, ds = shape.boundary_points(npts=numr)

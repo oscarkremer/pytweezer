@@ -39,14 +39,14 @@ class AxiSymShape(Shape, ABC):
                 return npts
 
     def boundary_points_area(self, rho, z, rho_out, z_out, r, t, p):
-        dst = np.zeros((rtp.shape[0],3))
-        dst[1:-1,0] = (rho_out[2:] - rho_out[1:end-1])/2
-        dst[1:-1,2] = (z_out[2:end] - z_out[1:end-1])/2
+        dst = np.zeros((r.shape[0],3))
+        dst[1:-1,0] = (rho_out[2:] - rho_out[:-2])/2
+        dst[1:-1,2] = (z_out[2:] - z_out[:-2])/2
         dst[0, 0] = rho_out[0:2].mean()-rho[0]
         dst[0, 2] = z_out[1:2].mean() - z[0]
         dst[-1, 0] = rho[-1] - rho_out[-2:].mean()
         dst[-1, 2] = z[-1] - z_out[-2:].mean()
-        ds = rtp[:,0]*np.sqrt(np.power(np.abs(dst),2).sum(axis=1))*np.sin(rtp[:,1])
+        ds = r*np.sqrt(np.power(np.abs(dst),2).sum(axis=1))*np.sin(t)
         return ds
 
     def boundary_points_rhoz(self, shape, rho, z, npts=[], n_max=[]):
@@ -106,8 +106,8 @@ class AxiSymShape(Shape, ABC):
         '''
         npts = self.boundary_points_npts(**kwargs)
         theta, phi = self.angulargrid(2*npts, 1)
-        theta = [0.0; theta; pi]
-        phi = [phi(1); phi; phi(end)]
+        theta = [0.0, theta, pi]
+        phi = [phi(1), phi, phi(end)]
         xyz = self.locations(theta, phi);
         rho = xyz[:, 0]
         z = xyz[:, 2]

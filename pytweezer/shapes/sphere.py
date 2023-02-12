@@ -23,7 +23,6 @@ class Sphere(StarShape, AxiSymShape):
 
     def radii(self, theta, phi):
         theta, phi = match_size(theta, phi)
-        print(theta)
         return np.ones(theta.shape)*self.__radius__
 
     def normals(self, theta, phi):
@@ -36,9 +35,9 @@ class Sphere(StarShape, AxiSymShape):
         phi = np.zeros(theta.shape)
         x, y, z = self.locations(theta, phi)
         nx, ny, nz = x/self.__radius__, y/self.__radius__, z/self.__radius__
-        nr, nt, np, r, t, p = xyzv2rtpv(nx, ny, nz, x, y, z)
-        ds = self.boundary_points_area(x, z, x, z, nr, nt, np)
-        return rtp, n, ds
+        n_rho, n_theta, n_phi, r, t, p = xyzv2rtpv(nx, ny, nz, x, y, z)
+        ds = self.boundary_points_area(x, z, x, z, r, t, p)
+        return r, t, p, n_rho, n_theta, n_phi, ds
 
     def axial_symmetry(self, shape):
         return 0, 0, 0
