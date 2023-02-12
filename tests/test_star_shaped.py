@@ -2,14 +2,13 @@ import pytest
 import numpy as np
 from pytweezer.shapes import Sphere
 
-def test_inside_xyze_boundary_points_values_r():  
+def test_inside_xyz_boundary_points_values_r():  
     radius = 1.0
     offset = np.array([0, 0, 2])
     shape = Sphere(radius, position=offset)
-    z = np.linspace(-10, 10, 100)
-    mask = shape.inside_xyz(0, 0, z.T, origin='world') 
-    print(mask.shape, z.shape)
-    testCase.verifyThat(size(mask), IsEqualTo(size(z.T)), 'Incorrect size of mask')
+    z = np.linspace(-10, 10, 100).reshape((100,1))
+    mask = shape.inside_xyz(0, 0, z, origin='world') 
+    assert mask.shape==z.shape, 'Error in dimension of returned mask'
 
 
 '''

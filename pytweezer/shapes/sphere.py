@@ -7,7 +7,7 @@ class Sphere(StarShape, AxiSymShape):
 
     def __init__(self, radius, position=np.array([])):
         self.__radius__ = radius
-        if not position:
+        if not position.size:
             pass
         else:
             self.position = position

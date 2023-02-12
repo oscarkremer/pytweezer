@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 from abc import ABC, abstractmethod
+from numpy.linalg import norm
 from pytweezer.utils import angular_grid, match_size, xyz2rtp, rtp2xyz
 from .shape import Shape
 
@@ -110,29 +111,31 @@ class StarShape(Shape, ABC):
         return n
 
     def inside(self, radius, theta, phi, origin='shape'):
- 
         radius, theta, phi = match_size(radius, theta, phi)
         if origin == 'world':
-            if vecnorm(shape.position) != 0:
+            if norm(self.position) != 0:
                 x, y, z = rtp2xyz(radius, theta, phi)
-                x = x - shape.position[0]
-                y = y - shape.position[1]
-                z = z - shape.position[2]
+                x = x - self.position[0]
+                y = y - self.position[1]
+                z = z - self.position[2]
                 radius, theta, phi = xyz2rtp(x, y, z)
         elif origin=='shape':
             pass
         else:
             raise ValeuError('origin must be ''world'' or ''shape''');
-
-        assert(all(radius >= 0), 'Radii must be positive')
-
+        assert np.alltrue(radius >= 0), 'Radii must contain only positive values'
         r = self.radii(theta, phi)
         b = radius < r
         return b
 
     def inside_xyz(self, x, y, z, origin='shape'):
+        def __fix_dim__(array):
+            if len(array.shape) == 1:
+                return array.reshape((array.shape[0],1))
+            else:
+                return array
         x, y, z = match_size(x, y, z)
-        print('match_size-insidexyz', x,y,z)
+        x, y, z = __fix_dim__(x), __fix_dim__(y), __fix_dim__(z) 
         if origin == 'world':
             x = x - self.position[0]
             y = y - self.position[1]
