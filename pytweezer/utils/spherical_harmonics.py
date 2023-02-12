@@ -103,13 +103,10 @@ def _spherical_harmonics(n, m, theta, phi=None):
     theta, phi = match_size(theta, phi)
     input_length = theta.shape[0]
     pnm = legendre_row(n, theta)
-
-    pnm = pnm[abs(m), :]
-    
+    pnm = pnm[abs(m), :] 
     phiM, mv = np.meshgrid(phi, m)
     index_m_positive = np.argwhere(m>=0)
     index_m_negative = np.argwhere(m<0)
-
     pnm = np.concatenate([1/((-1)**(-mv[tuple(index_m_negative),:]))*pnm[tuple(index_m_negative),:], pnm[tuple(index_m_positive),:]])
     pnm = pnm.reshape((pnm.shape[0], pnm.shape[1]))
     expphi = np.exp(1j*mv*phiM)

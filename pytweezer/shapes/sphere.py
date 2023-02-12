@@ -5,9 +5,11 @@ from pytweezer.utils import angular_grid, match_size, xyz2rtp, xyzv2rtpv, rtp2xy
 
 class Sphere(StarShape, AxiSymShape):
 
-    def __init__(self, radius, position=[]):
+    def __init__(self, radius, position=np.array([])):
         self.__radius__ = radius
-        if position:
+        if not position:
+            pass
+        else:
             self.position = position
         self.perimeter = self.get_perimeter()
         self.volume = self.get_volume()
