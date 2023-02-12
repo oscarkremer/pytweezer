@@ -4,6 +4,8 @@ from .laguerre import laguerre
 from .legendre_row import legendre_row
 from .match_size import match_size
 from .n_max_2ka import n_max_2ka
+from .paraxial_beam_waist import paraxial_beam_waist
+from .paraxial_transformation_matrix import paraxial_transformation_matrix
 from .rotations import rotx, roty, rotz
 from .rtp2xyz import rtp2xyz
 from .sbesselh import sbesselh
@@ -24,6 +26,8 @@ __all__ = [
     'laguerre',
     'legendre_row',
     'match_size',
+    'paraxial_beam_waist',
+    'paraxial_transformation_matrix',
     'n_max_2ka',
     'rotations',
     'rtp2xyz',
