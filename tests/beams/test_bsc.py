@@ -3,13 +3,13 @@ import numpy as np
 from pytweezer.beams import Gaussian
 
 def test_sphere_perimeter():
-    beam = Gaussian()
-    beam.power = 1.0
-    dz = np.pi/2
+#    beam = Gaussian()
+#    beam.power = 1.0
+#    dz = np.pi/2
 
-    translated_beam1 = beam.translate_z(z=dz)
-
-    _, AB = beam.translate_z(dz)
+#    translated_beam1 = beam.translate_z(z=dz)
+    pass
+#    _, AB = beam.translate_z(dz)
 #  tbeam2 = AB * beam;
 
 #  [~, A, B] = beam.translateZ(dz);

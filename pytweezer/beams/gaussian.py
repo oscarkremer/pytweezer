@@ -20,6 +20,9 @@ class Gaussian(PointMatch):
                         truncation_angle=np.pi/2,
                         angular_scaling='tantheta'
                         ):
+        pass
+
+'''
         if self.validate_beam_type(beam_function):
             self.beam_function = beam_function
         else:
@@ -280,7 +283,7 @@ class Gaussian(PointMatch):
         return True if method in ('default', 'new_beam') else False
 
 
-
+'''
 
 '''
 

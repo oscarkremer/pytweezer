@@ -1,8 +1,13 @@
 import numpy as np
 
 
-def paraxial_transformation_matrix(paraxial_order, basis_in, basis_out, normal_mode=0)
-    order = int(100*normal_mode)+10*basis_in[0] + basis_out[0])
+
+def paraxial_transformation_matrix(paraxial_order, basis_in, basis_out, normal_mode=0):
+    pass
+
+'''
+
+    order = int(100*normal_mode+10*basis_in[0] + basis_out[0])
     if order == 0:
         modeweights = genLG2IG(paraxial_order, 0)
     elif order == 1:
@@ -71,7 +76,8 @@ def paraxial_transformation_matrix(paraxial_order, basis_in, basis_out, normal_m
 
     col_modes=[i1_in,i2_in,i3_in]
     return modeweights, col_modes, row_modes
-
+'''
+'''
 def genLG2HG(order_paraxial):
     n=[0:floor(order_paraxial/2)];
     k=n;
@@ -261,3 +267,4 @@ if nargout>1
     [LGlookups,IGlookups]=meshgrid([0:order_paraxial],[0:order_paraxial]);
 end
 end
+'''
