@@ -14,9 +14,8 @@ def test_sphere_radii():
     shape = Sphere(radius)
     r = shape.radii(theta, phi)
     sz = theta.size
-    np.testing.assert_array_almost_equal(r, matlib.repmat(1, 1, sz), decimal=decimal,
+    np.testing.assert_array_almost_equal(r, matlib.repmat(1, 1, sz).reshape((sz)), decimal=decimal,
         err_msg='Error for radii function of Sphere shape')
-
 
 def test_sphere_normals():
     decimal = 3
@@ -25,13 +24,8 @@ def test_sphere_normals():
     shape = Sphere(radius)
     n = shape.normals(theta, phi)
     sz = theta.size
-
-    np.testing.assert_array_almost_equal(n, matlib.repmat([1, 0, 0], 1, sz), decimal=decimal,
+    np.testing.assert_array_almost_equal(n, matlib.repmat([1, 0, 0], sz, 1), decimal=decimal,
         err_msg='Error for normal function of Sphere shape')
-
-#    testCase.verifyThat(n, IsEqualTo(repmat([1.0, 0, 0], sz, 1), ...
-#        'Within', AbsoluteTolerance(tol)), ...
-#        'Sphere normals should be [1 0 0]');
 
 def test_sphere_axial_symmetry():
     decimal = 3
@@ -40,5 +34,4 @@ def test_sphere_axial_symmetry():
     shape = Sphere(radius)
     sz = theta.size
     _, _, rotsym = shape.axial_symmetry()
-#    testCase.verifyThat(rotsym, IsEqualTo(0), ...
-#        'Sphere rotational symmetry incorrect');
+    assert rotsym==0, 'Error for axial symmetry of Sphere shape'

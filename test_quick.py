@@ -6,9 +6,9 @@ from numpy import matlib as matlib
 decimal = 3
 radius = 1 
 theta, phi = angular_grid(3, 3)
-print(phi)
 shape = Sphere(radius)
 n = shape.normals(theta, phi)
 sz = theta.size
-print(n, matlib.repmat(1.0, 1, sz))
+
+print(n, matlib.repmat([1, 0, 0], sz, 1))
 #    testCase.verifyThat(r, IsE

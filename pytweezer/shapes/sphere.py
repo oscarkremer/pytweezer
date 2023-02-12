@@ -30,9 +30,8 @@ class Sphere(StarShape, AxiSymShape):
 
     def normals(self, theta, phi):
         theta, phi = match_size(theta, phi)
-        print(theta.shape)
-        N = max(theta.shape)
-        return np.ones((N, N))*np.array([[1], [0], [0]])
+        theta = theta.reshape((theta.shape[0], 1))
+        return np.ones(theta.shape)*np.array([[1, 0, 0]])
 
     def boundary_points(self, **kwargs):
         ntheta = self.boundary_points_npts(**kwargs)
@@ -44,5 +43,5 @@ class Sphere(StarShape, AxiSymShape):
         ds = self.boundary_points_area(x, z, x, z, r, t, p)
         return r, t, p, n_rho, n_theta, n_phi, ds
 
-    def axial_symmetry(self, shape):
+    def axial_symmetry(self):
         return 0, 0, 0
