@@ -88,8 +88,7 @@ class StarShape(Shape, ABC):
         numr = np.ceil(self.max_radius/spacing)      
         if kwargs['even_range']:
             numr = numr + 0.5
-        rrange = np.arange(-numr, numr)*spacing
-        print(rrange)
+        rrange = np.arange(-numr, numr+1)*spacing
         xx, yy, zz = np.meshgrid(rrange, rrange, rrange)
         mask = self.inside_xyz(xx, yy, zz, origin='shape')
         xyz = [xx[mask].T, yy[mask].T, zz[mask].T]

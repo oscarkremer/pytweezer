@@ -18,7 +18,7 @@ def test_voxel_positions_with_offset():
     sphere_1 = Sphere(radius)
     sphere_2 = Sphere(radius, position=np.array([1,0,0]))
     spacing = 0.1
-    voxels1 = sphere_1.voxels(spacing, origin='world') + offset
+    voxels1 = sphere_1.voxels(spacing, origin='world') + np.array([1, 0, 0])
     voxels2 = sphere_2.voxels(spacing, origin='world')
 
 
