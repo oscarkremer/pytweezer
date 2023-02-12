@@ -1,7 +1,6 @@
 import pytest
 import warnings
 import numpy as np
-
 warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 from numpy import matlib as matlib
 from pytweezer.shapes import Sphere

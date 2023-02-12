@@ -2,6 +2,7 @@ from .angular_grid import angular_grid
 from .combined_index import combined_index
 from .legendre_row import legendre_row
 from .match_size import match_size
+from .n_max_2ka import n_max_2ka
 from .rotations import rotx, roty, rotz
 from .rtp2xyz import rtp2xyz
 from .sbesselh import sbesselh
@@ -21,6 +22,7 @@ __all__ = [
     'combined_index',
     'legendre_row',
     'match_size',
+    'n_max_2ka',
     'rotations',
     'rtp2xyz',
     'spherical_harmonics'

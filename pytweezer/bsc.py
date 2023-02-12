@@ -1,287 +1,211 @@
-import warnings
+import numpy as np
 from pytweezer.utils import combined_index
-from pytweezer.utils import rtp2xyz, rtpv2xyzv, xyz2rt, xyzv2rtpv
-from pytweezer.utils import translate_z
 
 class Bsc:
+    def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
+        self.dz = dz
+        self.k_medium = k_m
+        self.omega = omega
 
-#  properties (SetAccess=protected)
-#    a           % Beam shape coefficients a vector
-#    b           % Beam shape coefficients b vector#
-#
-#    k_medium    % Wavenumber in medium
-#
-#    dz          % Absolute cumulative distance the beam has moved#
-#
-#    % These can't be tracked using Matrix translation/rotations
-#    %offset      % Offset applied to beam using translate functions
-#    %direction   % Direction of beam applied using rotation functions
-#  end
+        assert a.shape==b.shape, 'Mismatch between the shapes of the coefficients'      
+        if isinstance(a, np.ndarray):
+            if len(a.shape) = 1
+                a = a.reshape((a.shape[0], 1))
+        if isinstance(b, np.ndarray):
+            if len(b.shape) = 1
+                b = b.reshape((b.shape[0], 1))
+        assert a.shape[0] >= 3, 'Number of multiploe must be at least 3'
+        assert np.sqrt(a.shape[0]+1) == np.floor(np.sqrt(a.shape[0]+1)), 
+            'Number of multipoles must be 3, 8, 15, 24, ...'
+        self.a = a
+        self.b = b
+        self.basis = basis
+        self.type = beam_type
 
-#  properties
-#    basis       % VSWF beam basis (incoming, outgoing or regular)
-#    type        % Beam type (incident, scattered, total)
-    
-#    omega       % Angular frequency of beam
-#  end
-
-#  properties (Dependent)
-#    Nmax        % Truncation number for VSWF coefficients
-#    power       % Power of the beam
-#    Nbeams      % Number of beams in this Bsc object
-
-#    wavelength  % Wavelength of beam
-#    speed       % Speed of beam in medium
-#  end
-
-#  methods (Abstract)
-#  end
     @staticmethod
-    def make_beam_vector(self, a, b, n=None, m=None, Nmax=None):
-        # MAKE_BEAM_VECTOR converts output of bsc_* functions to sparse vectors
+    def make_beam_vector(self, a, b, n, m, n_max):
+    #function [a, b, n, m] = make_beam_vector(a, b, n, m, Nmax)
+     # %MAKE_BEAM_VECTOR converts output of bsc_* functions to sparse vectors
 
-        #    % Check we have some modes
-        if not n:
-            warnings.warn('OTT:BSC:make_beam_vector:no_modes', ...
-            'No modes in beam or all zero modes.');
+#      % Check we have some modes#
+  #    if isempty(n)
+##        warning('OTT:BSC:make_beam_vector:no_modes', ...
+ #           'No modes in beam or all zero modes.');
+   #   end
 
-#      % Handle default value for Nmax
-            if not n:
-                Nmax = 0
-            elif not Nmax:
-                Nmax = max(n)
-
-        total_orders = combined_index(Nmax, Nmax)
-        ci = combined_index(n, m)
-        nbeams = a.shape[1]
-        
-        ci, cinbeams = ndgrid(ci, 1:nbeams)
-
-        a = sparse(ci, cinbeams, a, total_orders, nbeams)
-        b = sparse(ci, cinbeams, b, total_orders, nbeams)
-
-        n, m = combined_index(1:Nmax^2+2*Nmax)
-        n = n.T
-        m = m.T
-        return a, b, n, m
-
-        def parser_k_medium(self, k_medium=None, wavelength_medium=None, 
-            index_medium=None, wavelength_0=None, default=None):
-
-            # PARSER_K_MEDIUM helper to get k_medium from a parser object
-
-            if not k_medium:
-                if wavelength_medium:
-                    k_medium = 2.0*np.pi/wavelength_medium;
-                else:
-                    if index_medium:
-                        if wavelength_0:
-                            k_medium = index_medium*2.0*np.pi/wavelength_0
-                        else:
-                            raise ValueError('Varialbe wavelength_0 must be specified to use index_medium')
-                    elif default:
-                        k_medium = default
-                    else:
-                        raise ValueError('Unable to determine k_medium from inputs')
-            return k_medium
-
-        def GetVisualisationData(self, field_type, xyz, rtp, vxyz, vrtp):
-            '''
-            assert(size(xyz, 2) == 3 || size(xyz, 2) == 0, ...
-                'xyz must be Nx3 matrix')
-            assert(size(vxyz, 2) == 3 || size(vxyz, 2) == 0, ...
-                'vxyz must be Nx3 matrix')
-            assert(size(rtp, 2) == 3 || size(rtp, 2) == 0, ...
-                'rtp must be Nx3 matrix')
-            assert(size(vrtp, 2) == 3 || size(vrtp, 2) == 0, ...
-                'vrtp must be Nx3 matrix')
-            
-            #            % Get the coordinates
-            if isempty(xyz) && ~isempty(rtp)
-                xyz = ott.utils.rtp2xyz(rtp);
-            elseif isempty(rtp) && ~isempty(xyz)
-                rtp = ott.utils.xyz2rtp(xyz);
-            elseif isempty(rpt) && isempty(xyz)
-                error('OTT:BSC:GetVisualisationData:no_coords', ...
-                'Must supply coordinates');
-            end
-            
-            % Get the data
-            if isempty(vxyz) && ~isempty(vrtp)
-                vxyz = rtpv2xyzv(vrtp, rtp);
-            elseif isempty(vrtp) && ~isempty(vxyz)
-                vrtp = xyzv2rtpv(vxyz, xyz);
-            elseif isempty(vrtp) && isempty(vxyz)
-                error('OTT:BSC:GetVisualisationData:no_data', ...
-                'Must supply data');
-            else
-                error('OTT:BSC:GetVisualisationData:too_much_data', ...
-                'Must supply only one data variable');
-            end
-            
-            % Generate the requested field
-            if strcmpi(field_type, 'irradiance')
-                data = sqrt(sum(abs(vxyz).^2, 2));
-            elseif strcmpi(field_type, 'E2')
-                data = sum(abs(vxyz).^2, 2);
-            elseif strcmpi(field_type, 'Sum(Abs(E))')
-                data = sum(abs(vxyz), 2);
-                
-            elseif strcmpi(field_type, 'Re(Er)')
-                data = real(vrtp(:, 1));
-            elseif strcmpi(field_type, 'Re(Et)')
-                data = real(vrtp(:, 2));
-            elseif strcmpi(field_type, 'Re(Ep)')
-                data = real(vrtp(:, 3));
-                
-            elseif strcmpi(field_type, 'Re(Ex)')
-                data = real(vxyz(:, 1));
-            elseif strcmpi(field_type, 'Re(Ey)')
-                data = real(vxyz(:, 2));
-            elseif strcmpi(field_type, 'Re(Ez)')
-                data = real(vxyz(:, 3));
-                
-            elseif strcmpi(field_type, 'Abs(Er)')
-                data = abs(vrtp(:, 1));
-            elseif strcmpi(field_type, 'Abs(Et)')
-                data = abs(vrtp(:, 2));
-            elseif strcmpi(field_type, 'Abs(Ep)')
-                data = abs(vrtp(:, 3));
-                
-            elseif strcmpi(field_type, 'Abs(Ex)')
-                data = abs(vxyz(:, 1));
-            elseif strcmpi(field_type, 'Abs(Ey)')
-                data = abs(vxyz(:, 2));
-            elseif strcmpi(field_type, 'Abs(Ez)')
-                data = abs(vxyz(:, 3));
-                
-            elseif strcmpi(field_type, 'Arg(Er)')
-                data = angle(vrtp(:, 1));
-            elseif strcmpi(field_type, 'Arg(Et)')
-                data = angle(vrtp(:, 2));
-            elseif strcmpi(field_type, 'Arg(Ep)')
-                data = angle(vrtp(:, 3));
-                
-            elseif strcmpi(field_type, 'Arg(Ex)')
-                data = angle(vxyz(:, 1));
-            elseif strcmpi(field_type, 'Arg(Ey)')
-                data = angle(vxyz(:, 2));
-            elseif strcmpi(field_type, 'Arg(Ez)')
-                data = angle(vxyz(:, 3));
-                
-            elseif strcmpi(field_type, 'Er')
-                data = vrtp(:, 1);
-            elseif strcmpi(field_type, 'Et')
-                data = vrtp(:, 2);
-            elseif strcmpi(field_type, 'Ep')
-                data = vrtp(:, 3);
-                
-            elseif strcmpi(field_type, 'Ex')
-                data = vxyz(:, 1);
-            elseif strcmpi(field_type, 'Ey')
-                data = vxyz(:, 2);
-            elseif strcmpi(field_type, 'Ez')
-                data = vxyz(:, 3);
-
-            else
-                error('OTT:BSC:GetVisualisationData:unknown_field_type', ...
-                'Unknown field type value');
-            end
-            
-            end
+      % Handle default value for Nmax
+      if nargin < 5
+        if isempty(n)
+          Nmax = 0;
+        else
+          Nmax = max(n);
         end
-        '''
-        pass
-
-
-    def __translateZ_type_helper__(self, beam, z, Nmax)
-
-      '''  % Determine the correct type to use in ott.utils.translate_z
-        %
-        % Units for the coordinates should be consistent with the
-        % beam wave number (i.e., if the beam was created by specifying
-        % wavelength in units of meters, distances here should also be
-        % in units of meters).
-        %
-        % Usage
-        %   [A, B] = translateZ_type_helper(beam, z, Nmax) calculates the
-        %   translation matrices for distance z with Nmax
-        %
-        % Usage may change in future releases.
-             % Determine beam type
-      
-          '''
-        if beam.basis == 'incoming':
-            translation_type = 'sbesselh2'
-        elif beam.basis == 'outgoing':
-            translation_type = 'sbesselh1'
-        elif beam.basis == 'regular':
-            translation_type = 'sbesselj'
-        
-        #  Calculate tranlsation matrices
-        return translate_z(Nmax, z, 'type', translation_type);
-        
-
-  methods
-    function beam = Bsc(a, b, basis, type, varargin)
-      %BSC construct a new beam object
-      %
-      % beam = Bsc(a, b, basis, type, ...) constructs a new beam vector.
-      % Useful if you have a specific set of a/b coefficients that you
-      % want to wrap in a beam object.
-      %
-      % Basis: incoming, outgoing or regular
-      % Type: incident, scattered, total, internal
-      %
-      % Optional named arguments:
-      %    k_medium  n  Wavenumber in medium (default: 2*pi)
-      %    omega     n  Angular frequency (default: 2*pi)
-      %    dz        n  Initial displacement of the beam (default: 0)
-      %    like    beam Construct this beam to be like another beam
-      
-      p = inputParser;
-      p.addParameter('like', []);
-      p.addParameter('k_medium', 2.0*pi);
-      p.addParameter('omega', 2*pi);
-      p.addParameter('dz', 0.0);
-      p.parse(varargin{:});
-      
-      beam.dz = p.Results.dz;
-      beam.k_medium = p.Results.k_medium;
-      beam.omega = p.Results.omega;
-      
-      if ~isempty(p.Results.like)
-        beam.omega = p.Results.like.omega;
-        beam.k_medium = p.Results.like.k_medium;
-        beam.dz = p.Results.like.dz;
       end
 
-      if nargin ~= 0
-      
-        % Check size of a and b
-        assert(all(size(a) == size(b)), 'size of a and b must match');
-        if isvector(a)
-          a = a(:);
+      total_orders = ott.utils.combined_index(Nmax, Nmax);
+      ci = ott.utils.combined_index(n, m);
+      nbeams = size(a, 2);
+
+      [ci, cinbeams] = ndgrid(ci, 1:nbeams);
+
+      a = sparse(ci, cinbeams, a, total_orders, nbeams);
+      b = sparse(ci, cinbeams, b, total_orders, nbeams);
+
+      [n, m] = ott.utils.combined_index(1:Nmax^2+2*Nmax);
+      n = n.T;
+      m = m.T;
+      return a, b, n, m
+
+    @staticmethod
+    def parser_k_medium(p, default):
+      %PARSER_K_MEDIUM helper to get k_medium from a parser object
+
+      if ~isempty(p.Results.k_medium)
+        k_medium = p.Results.k_medium;
+      elseif ~isempty(p.Results.wavelength_medium)
+        k_medium = 2.0*pi/p.Results.wavelength_medium;
+      elseif ~isempty(p.Results.index_medium)
+        if isempty(p.Results.wavelength0)
+          error('wavelength0 must be specified to use index_medium');
         end
-        if isvector(b)
-          b = b(:);
-        end
-        assert(size(a, 1) >= 3 && sqrt(size(a, 1)+1) == floor(sqrt(size(a, 1)+1)), ...
-          'number of multipole terms must be 3, 8, 15, 24, ...');
-        
-        beam.a = a;
-        beam.b = b;
-        beam.basis = basis;
-        beam.type = type;
+        k_medium = p.Results.index_medium*2.0*pi/p.Results.wavelength0;
+      elseif nargin == 2
+        k_medium = default;
+      else
+        error('Unable to determine k_medium from inputs');
       end
     end
 
-    function beam = append(beam, other)
-      % APPEND joins two beam objects together
+    @staticmethod
+    function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)  
+      assert(size(xyz, 2) == 3 || size(xyz, 2) == 0, ...
+        'xyz must be Nx3 matrix');
+      assert(size(vxyz, 2) == 3 || size(vxyz, 2) == 0, ...
+        'vxyz must be Nx3 matrix');
+      assert(size(rtp, 2) == 3 || size(rtp, 2) == 0, ...
+        'rtp must be Nx3 matrix');
+      assert(size(vrtp, 2) == 3 || size(vrtp, 2) == 0, ...
+        'vrtp must be Nx3 matrix');
+      
+      % Get the coordinates
+      if isempty(xyz) && ~isempty(rtp)
+        xyz = ott.utils.rtp2xyz(rtp);
+      elseif isempty(rtp) && ~isempty(xyz)
+        rtp = ott.utils.xyz2rtp(xyz);
+      elseif isempty(rpt) && isempty(xyz)
+        error('OTT:BSC:GetVisualisationData:no_coords', ...
+          'Must supply coordinates');
+      end
+      
+      % Get the data
+      if isempty(vxyz) && ~isempty(vrtp)
+        vxyz = ott.utils.rtpv2xyzv(vrtp, rtp);
+      elseif isempty(vrtp) && ~isempty(vxyz)
+        vrtp = ott.utils.xyzv2rtpv(vxyz, xyz);
+      elseif isempty(vrtp) && isempty(vxyz)
+        error('OTT:BSC:GetVisualisationData:no_data', ...
+          'Must supply data');
+      else
+        error('OTT:BSC:GetVisualisationData:too_much_data', ...
+          'Must supply only one data variable');
+      end
+      
+      % Generate the requested field
+      if strcmpi(field_type, 'irradiance')
+        data = sqrt(sum(abs(vxyz).^2, 2));
+      elseif strcmpi(field_type, 'E2')
+        data = sum(abs(vxyz).^2, 2);
+      elseif strcmpi(field_type, 'Sum(Abs(E))')
+        data = sum(abs(vxyz), 2);
+        
+      elseif strcmpi(field_type, 'Re(Er)')
+        data = real(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Re(Et)')
+        data = real(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Re(Ep)')
+        data = real(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Re(Ex)')
+        data = real(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Re(Ey)')
+        data = real(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Re(Ez)')
+        data = real(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Abs(Er)')
+        data = abs(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Abs(Et)')
+        data = abs(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Abs(Ep)')
+        data = abs(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Abs(Ex)')
+        data = abs(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Abs(Ey)')
+        data = abs(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Abs(Ez)')
+        data = abs(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Arg(Er)')
+        data = angle(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Arg(Et)')
+        data = angle(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Arg(Ep)')
+        data = angle(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Arg(Ex)')
+        data = angle(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Arg(Ey)')
+        data = angle(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Arg(Ez)')
+        data = angle(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Er')
+        data = vrtp(:, 1);
+      elseif strcmpi(field_type, 'Et')
+        data = vrtp(:, 2);
+      elseif strcmpi(field_type, 'Ep')
+        data = vrtp(:, 3);
+        
+      elseif strcmpi(field_type, 'Ex')
+        data = vxyz(:, 1);
+      elseif strcmpi(field_type, 'Ey')
+        data = vxyz(:, 2);
+      elseif strcmpi(field_type, 'Ez')
+        data = vxyz(:, 3);
 
-      if beam.Nbeams == 0
-        % Copy the other beam, preserves properties
-        beam = other;
+      else
+        error('OTT:BSC:GetVisualisationData:unknown_field_type', ...
+          'Unknown field type value');
+      end
+      
+    end
+  end
+  
+  methods (Access=protected)
+    
+    function [A, B] = translateZ_type_helper(beam, z, Nmax)
+      switch beam.basis
+        case 'incoming'
+          translation_type = 'sbesselh2';
+        case 'outgoing'
+          translation_type = 'sbesselh1';
+        case 'regular'
+          translation_type = 'sbesselj';
+      end
+      
+      % Calculate tranlsation matrices
+      [A, B] = ott.utils.translate_z(Nmax, z, 'type', translation_type);
+      
+    end
+    
+  end
+
+  methods
+
+    def append(self, other)
+      if self.n_beams == 0
+        beam = other
       else
         beam.Nmax = max(beam.Nmax, other.Nmax);
         other.Nmax = beam.Nmax;
@@ -291,18 +215,6 @@ class Bsc:
     end
     
     function varargout = paraxialFarfield(beam, varargin)
-      % Calcualtes fields in the paraxial far-field
-      %
-      % Usage
-      %   [E, H] = beam.paraxialFarfield(...)
-      %
-      % Optional named arguments
-      %   - 'mapping' (enum) -- mapping to paraxial far-field
-      %   - 'calcE'   bool   calculate E field (default: true)
-      %   - 'calcH'   bool   calculate H field (default: nargout == 2)
-      %   - 'saveData' bool  save data for repeated calculation (default: false)
-      %   - 'data'    data   data saved for repeated calculation.
-      
       p = inputParser;
       p.addParameter('calcE', true);
       p.addParameter('calcH', nargout >= 2);
@@ -396,30 +308,6 @@ class Bsc:
     end
 
     function [E, H, data] = farfield(beam, theta, phi, varargin)
-      %FARFIELD finds far field at locations theta, phi.
-      %
-      % [E, H] = beam.farfield(theta, phi) calculates the farfield
-      % at locations theta, phi.  Returns 3xN matrices of the fields
-      % in spherical coordinates (r, t, p), the radial component is zero.
-      %
-      % Theta is the rotation off the z-axis, phi is the rotation about
-      % the z-axis.
-      %
-      % [E, H, data] = beam.farfield(theta, phi, 'saveData', true) outputs
-      % a matrix of data the can be used for repeated calculation.
-      %
-      % Optional named arguments:
-      %    'calcE'   bool   calculate E field (default: true)
-      %    'calcH'   bool   calculate H field (default: nargout == 2)
-      %    'saveData' bool  save data for repeated calculation (default: false)
-      %    'data'    data   data saved for repeated calculation.
-      %
-      % If either calcH or calcE is false, the function still returns
-      % E and H as matricies of all zeros.
-      %
-      % For cross(E, conj(H))/2 to give the correct power, you will need
-      % to divide H by the impedance of the medium (in appropriate units).
-
       ip = inputParser;
       ip.addParameter('calcE', true);
       ip.addParameter('calcH', nargout >= 2);
@@ -551,27 +439,6 @@ class Bsc:
     end
 
     function [E, H, data] = emFieldRtp(beam, rtp, varargin)
-      % Calculates the E and H field at specified locations
-      %
-      % [E, H] = beam.emFieldRtp(rtp, ...) calculates the complex field
-      % at locations xyz (3xN matrix of spherical coordinates).
-      % Returns 3xN matrices for the E and H field at these locations.
-      %
-      % Optional named arguments:
-      %    'calcE'   bool   calculate E field (default: true)
-      %    'calcH'   bool   calculate H field (default: nargout == 2)
-      %    'saveData' bool  save data for repeated calculation (default: false)
-      %    'data'    data   data saved for repeated calculation.
-      %    'coord'   str    coordinates to use for calculated field
-      %       'cartesian' (default) or 'spherical'
-      %
-      % If either calcH or calcE is false, the function still returns
-      % E and H as matrices of all zeros for the corresponding field.
-      %
-      % To get the correct Poynting vector, i.e. cross(E, conj(H))/2,
-      % you will need to divide H by the medium impedance and divide
-      % both E and H by the wavenumber (TODO: and maybe another factor???).
-
       p = inputParser;
       p.addParameter('calcE', true);
       p.addParameter('calcH', nargout >= 2);
@@ -622,53 +489,11 @@ class Bsc:
     end
 
     function [E, H, data] = emFieldXyz(beam, xyz, varargin)
-      %EMFIELDXYZ calculates the E and H field at specified locations
-      %
-      % [E, H] = beam.emFieldXyz(xyz, ...) calculates the complex field
-      % at locations xyz (3xN matrix of Cartesian coordinates).
-      % Returns 3xN matrices for the E and H field at these locations.
-      %
-      % Optional named arguments:
-      %    'calcE'   bool   calculate E field (default: true)
-      %    'calcH'   bool   calculate H field (default: nargout == 2)
-      %    'saveData' bool  save data for repeated calculation (default: false)
-      %    'data'    data   data saved for repeated calculation.
-      %    'coord'   str    coordinates to use for calculated field
-      %       'cartesian' (default) or 'spherical'
-      %
-      % If either calcH or calcE is false, the function still returns
-      % E and H as matrices of all zeros for the corresponding field.
-
       rtp = ott.utils.xyz2rtp(xyz.');
       [E, H, data] = beam.emFieldRtp(rtp.', varargin{:});
     end
     
     function varargout = visualiseFarfieldSlice(beam, phi, varargin)
-      % Generate a 2-D scattering plot of the far-field.
-      %
-      % Usage:
-      %   beam.visualiseFarfieldSlice(phi, ...)
-      %   Generates a slice/polar plot of the far-field.  In this version
-      %   the slice is always aligned to the z-axis.  `phi` specifies the
-      %   rotation of the plane about the z-axis.
-      %
-      %   [theta, I] = beam.visualiseFarfieldSlice(phi, ...)
-      %   calculate data for the visualisation but don't generate a
-      %   visualisation unless `showVisualisation` is true.
-      %
-      % Optional named arguments:
-      %   - field (enum) -- The field type to visualise.  Defaults to
-      %     'irradiance'.  Not all field types support visualisation.
-      %
-      %   - normalise (logical) -- If true, the calculated fields are
-      %     normalised by the maximum calculated field value.
-      %
-      %   - ntheta (numeric) -- Number of angular points to use.
-      %     Defaults to 100.
-      %
-      %   - showVisualisation (logical) -- If the visualisation should
-      %     be shown.  Defaults to `nargout == 0`.
-      
       p = inputParser;
       p.addParameter('field', 'irradiance');
       p.addParameter('normalise', false, @islogical);
@@ -766,32 +591,6 @@ class Bsc:
     end
 
     function varargout = visualiseFarfield(beam, varargin)
-      % Create a 2-D visualisation of the farfield of the beam
-      %
-      % visualiseFarfield(...) displays an image of the farfield in
-      % the current figure window.
-      %
-      % im = visualiseFarfield(...) returns a 2-D image of the farfield.
-      %
-      % [im, data] = visualiseFarfield(..., 'saveData', true) returns the
-      % saved data that can be used for repeated calculation.
-      %
-      %    TODO: Should the data object instead be a callable object?
-      %     This would make the interface simpler.
-      %
-      % Optional named arguments:
-      %     'size'    [ x, y ]    Size of the image
-      %     'direction'  dir      Hemisphere string ('pos' or 'neg'),
-      %        2-vector (theta, phi) or 3x3 rotation matrix.
-      %     'field'   type        Type of field to calculate
-      %     'mapping' map         Mapping from sphere to plane ('sin', 'tan')
-      %     'range'   [ x, y ]    Range of points to visualise
-      %    'saveData' bool  save data for repeated calculation (default: false)
-      %    'data'    data   data saved for repeated calculation.
-      %    'thetaMax' num   maximum theta angle to include in image
-      %    'showVisualisation'  bool   show the visualisation in the
-      %       current figure (default: nargout == 0).
-
       p = inputParser;
       p.addParameter('size', [80, 80]);
       p.addParameter('direction', 'pos');
@@ -899,31 +698,6 @@ class Bsc:
     end
 
     function varargout = visualise(beam, varargin)
-      % Create a visualisation of the beam
-      %
-      % Usage
-      %   visualise(...) displays an image of the beam in the current
-      %   figure window.
-      %
-      %   im = visualise(...) returns a image of the beam.
-      %   If the beam object contains multiple beams, returns images
-      %   for each beam.
-      %
-      % Optional named arguments
-      %   - 'size'    [ x, y ]    Width and height of image
-      %   - 'field'   type        Type of field to calculate
-      %   - 'axis'    ax          Axis to visualise ('x', 'y', 'z') or
-      %     a cell array with 2 or 3 unit vectors for x, y, [z].
-      %   - 'offset'  offset      Plane offset along axis (default: 0.0)
-      %   - 'range'   [ x, y ]    Range of points to visualise.
-      %     Can either be a cell array { x, y }, two scalars for
-      %     range [-x, x], [-y, y] or 4 scalars [ x0, x1, y0, y1 ].
-      %   - 'mask'    func(xyz)   Mask function for regions to keep in vis
-      %   - 'combine' (enum)      If multiple beams should be treated as
-      %     'coherent' or 'incoherent' beams and their outputs added.
-      %     incoherent may only makes sense if the field is an intensity.
-      %     Default: [].
-
       p = inputParser;
       p.addParameter('field', 'irradiance');
       p.addParameter('size', [ 80, 80 ]);
@@ -1144,16 +918,6 @@ class Bsc:
     end
 
     function beam = set_Nmax(beam, nmax, varargin)
-      % SET_NMAX resize the beam, with additional options
-      %
-      % SET_NMAX(nmax) sets the beam nmax.
-      %
-      % SET_NMAX(..., 'tolerance', tol) use tol as the warning error
-      % level tolerance for resizing the beam.
-      %
-      % SET_NMAX(..., 'powerloss', mode) action to take if a power
-      % loss is detected.  Can be 'ignore', 'warn' or 'error'.
-
       p = inputParser;
       p.addParameter('tolerance', 1.0e-6);
       p.addParameter('powerloss', 'warn');
@@ -1208,28 +972,6 @@ class Bsc:
     end
 
     function [beam, A, B] = translateZ(beam, varargin)
-      % Translate a beam along the z-axis.
-      %
-      % Units for the coordinates should be consistent with the
-      % beam wave number (i.e., if the beam was created by specifying
-      % wavelength in units of meters, distances here should also be
-      % in units of meters).
-      %
-      % Usage
-      %   tbeam = beam.translateZ(z) translates by a distance ``z``
-      %   along the z axis.
-      %
-      %   [tbeam, A, B] = beam.translateZ(z) returns the translation matrices
-      %   and the translated beam.  See also :meth:`+ott.Bsc.translate`.
-      %
-      %   [tbeam, AB] = beam.translateZ(z) returns the ``A, B`` matrices
-      %   packed so they can be directly applied to a
-      %   beam: ``tbeam = AB * beam``.
-      %
-      %   [...] = beam.translateZ(..., 'Nmax', Nmax) specifies the output
-      %   beam ``Nmax``.  Takes advantage of not needing to calculate
-      %   a full translation matrix.
-
       p = inputParser;
       p.addOptional('z', []);
       p.addParameter('Nmax', beam.Nmax);
@@ -1273,36 +1015,6 @@ class Bsc:
     end
 
     function varargout = translateXyz(beam, varargin)
-      % Translate the beam given Cartesian coordinates.
-      %
-      % Units for the coordinates should be consistent with the
-      % beam wave number (i.e., if the beam was created by specifying
-      % wavelength in units of meters, distances here should also be
-      % in units of meters).
-      %
-      % Usage
-      %   tbeam = beam.translateXyz(xyz) translate the beam to locations
-      %   given by the ``xyz`` coordinates, where ``xyz`` is a 3xN matrix
-      %   of coordinates.
-      %
-      %   tbeam = beam.translateXyz(Az, Bz, D)
-      %   Translate the beam using z-translation and rotation matrices.
-      %
-      %   [tbeam, Az, Bz, D] = beam.translateXyz(...) returns the
-      %   z-translation matrices ``Az, Bz``, the rotation matrix ``D``,
-      %   and the translated beam ``tbeam``.
-      %
-      %   [tbeam, A, B] = beam.translateXyz(...) returns the translation
-      %   matrices ``A, B`` and the translated beam.
-      %
-      %   [tbeam, AB] = beam.translateXyz(...) returns the translation
-      %   matrices ``A, B`` packaged so they can be directly applied
-      %   to a beam using ``tbeam = AB * beam``.
-      %
-      %   tbeam = beam.translateXyz(..., 'Nmax', Nmax) specifies the
-      %   output beam ``Nmax``.  Takes advantage of not needing to
-      %   calculate a full translation matrix.
-
       p = inputParser;
       p.addOptional('opt1', []);    % xyz or Az
       p.addOptional('opt2', []);    % [] or Bz
@@ -1322,26 +1034,6 @@ class Bsc:
     end
 
     function [beam, A, B, D] = translateRtp(beam, varargin)
-      %TRANSLATERTP translate the beam given spherical coordinates
-      %
-      % TRANSLATERTP(rtp) translate the beam to locations given by
-      % the xyz coordinates, where rtp is a 3xN matrix of coordinates.
-      %
-      % TRANSLATERTP(Az, Bz, D) translate the beam using
-      % z-translation and rotation matricies.
-      %
-      % [beam, Az, Bz, D] = TRANSLATERTP(...) returns the z-translation
-      % matrices, the rotation matrix D, and the translated beam.
-      %
-      % [beam, A, B] = TRANSLATERTP(...) returns the translation matrices
-      % and the translated beam.
-      %
-      % [beam, AB] = TRANSLATERTP(...) returns the A, B matricies packed
-      % so they can be directly applied to the beam: tbeam = AB * beam.
-      %
-      % TRANSLATERTP(..., 'Nmax', Nmax) specifies the output beam Nmax.
-      % Takes advantage of not needing to calculate a full translation matrix.
-
       p = inputParser;
       p.addOptional('opt1', []);    % rtp or Az
       p.addOptional('opt2', []);    % [] or Bz
@@ -1433,20 +1125,6 @@ class Bsc:
     end
 
     function [beam, D] = rotate(beam, varargin)
-      %ROTATE apply the rotation matrix R to the beam coefficients
-      %
-      % [beam, D] = ROTATE(R) generates the wigner rotation matrix, D,
-      % to rotate the beam.  R is the Cartesian rotation matrix
-      % describing the rotation.  Returns the rotated beam and D.
-      %
-      % beam = ROTATE('wigner', D) applies the precomputed rotation.
-      % This will only work if Nmax ~= 1.  If D is a cell array of
-      % wigner matrices, generates a array of rotated beams.
-      %
-      % ROTATE(..., 'Nmax', nmax) specifies the Nmax for the
-      % rotation matrix.  The beam Nmax is unchanged.  If nmax is smaller
-      % than the beam Nmax, this argument is ignored.
-
       p = inputParser;
       p.addOptional('R', []);
       p.addParameter('Nmax', beam.Nmax);
@@ -1533,21 +1211,12 @@ class Bsc:
     end
 
     function [beam, D] = rotateXyz(beam, anglex, angley, anglez, varargin)
-      % Rotate the beam about the x, y then z axes
-      %
-      % [beam, D] = rorateXyz(anglex, angley, anglez, ...) additional
-      % arguments are passed to beam.rotate.  Angles in radians.
-
       import ott.utils.*;
       [beam, D] = beam.rotate(rotz(anglez*180/pi)* ...
           roty(angley*180/pi)*rotx(anglex*180/pi), varargin{:});
     end
 
     function beam = totalField(beam, ibeam)
-      % Calculate the total field representation of the beam
-      %
-      % total_beam = beam.totalField(incident_beam)
-      
       switch beam.type
         case 'total'
           % Nothing to do
@@ -1567,43 +1236,33 @@ class Bsc:
       end
     end
 
-    function beam = scatteredField(beam, ibeam)
+    def scattered_field(self, ibeam)
       % Calculate the scattered field representation of the beam
       %
       % scattered_beam = beam.totalField(incident_beam)
-      
-      switch beam.type
+      if self.type == 'total':
+        
         case 'total'
-          beam = 0.5*(beam - ibeam);
+                  beam = 0.5*(beam - ibeam);
           beam.type = 'scattered';
+      if self.type == 'total':
           
         case 'scattered'
           % Nothing to do
+      if self.type == 'total':
           
         case 'internal'
           error('Cannot convert from internal to scattered field');
+      if self.type == 'total':
           
         case 'incident'
           error('Cannot convert from incident to total field');
+      if self.type == 'total':
           
         otherwise
           error('Unknown beam type');
-      end
-    end
 
     function [a, b] = getCoefficients(beam, ci)
-      %GETCOEFFICIENTS gets the beam coefficients
-      %
-      % ab = beam.getCoefficients() gets the beam coefficients packed
-      % into a single vector, suitable for multiplying by a T-matrix.
-      %
-      % [a, b] = beam.getCoefficients() get the coefficients in two
-      % beam vectors.
-      %
-      % beam.getCoefficients(ci) behaves as above but only returns
-      % the requested beam cofficients a(ci) and b(ci).
-
-      % If ci omitted, return all a and b
       if nargin == 1
         ci = 1:size(beam.a, 1);
       end
@@ -1624,31 +1283,11 @@ class Bsc:
       end
     end
 
-    function beam = mrdivide(beam,o)
-      %MRDIVIDE (op) divide the beam coefficients by a scalar
-      beam.a = beam.a / o;
-      beam.b = beam.b / o;
-    end
-
+    def divide(self, scalar):
+        self.a = self.a/scalar
+        self.b = self.b/scalar
+    
     function [moment, int, data] = intensityMoment(beam, varargin)
-      % intensityMoment Calculate moment of beam intensity in the far-field
-      %
-      % [moment, int, data] = intensityMoment(...) integrates over the
-      % incoming/outgoing field in the far-field to calculate the
-      % moment of the intensity.  Also calculates the intensity.
-      %
-      % Can be used to calculate the force by comparing the outgoing component
-      % of the incident beam with the total scattered beam.
-      %
-      % Optional named arguments:
-      %   thetaRange   [min, max]  Range of angles from the pole to
-      %      integrate over.  Default is 0 to pi (exclusive).
-      %   saveData   bool  save data for repeated calculation (default: false)
-      %   data       data  data saved for repeated calculation.
-      %   ntheta     num   number of samples over 0 to pi theta range.
-      %   nphi       num   number of samples over 0 to 2*pi phi range.
-
-      % Parse inputs
       p = inputParser;
       p.addParameter('thetaRange', [0, pi]);
       p.addParameter('saveData', false);
@@ -1696,21 +1335,6 @@ class Bsc:
     end
 
     function [sbeam, beam] = scatter(beam, tmatrix, varargin)
-      %SCATTER scatter a beam using a T-matrix
-      %
-      % [sbeam, beam] = SCATTER(beam, tmatrix) scatters the beam
-      % returning the scattered beam, sbeam, and the unscattered
-      % but possibly translated beam truncated to tmatrix.Nmax + 1.
-      %
-      % SCATTER(..., 'position', xyz) applies a translation to the beam
-      % before the beam is scattered by the particle.
-      %
-      % SCATTER(..., 'rotation', R) applies a rotation to the beam,
-      % calculates the scattered beam and applies the inverse rotation,
-      % effectively rotating the particle.
-
-      % TODO: Support for multiple rotations or translations
-
       p = inputParser;
       p.addParameter('position', []);
       p.addParameter('rotation', []);
@@ -1817,13 +1441,6 @@ class Bsc:
     end
 
     function beam = mtimes(a,b)
-      %MTIMES (op) divide the beam coefficients by a scalar
-      %
-      % Supports:
-      %    - Scalar multiplication
-      %    - Matrix multiplication of a and b vectors: A*a, a*A
-      %    - Matrix multiplication of [a;b] vector: T*[a;b]
-
       if isa(a, 'ott.Bsc')
         beam = a;
         beam.a = beam.a * b;
@@ -1870,17 +1487,6 @@ class Bsc:
     end
     
     function beam = sum(beamin, dim)
-      % Sum beam coefficients
-      %
-      % Usage
-      %   beam = sum(beam)
-      %
-      %   beam = beam.sum()
-      %
-      %   beam = sum([beam1, beam2, ...], dim) sums the given beams,
-      %   similar to Matlab's ``sum`` builtin.  ``dim`` is the dimension
-      %   to sum over (optional).
-      
       if numel(beamin) > 1
         % beam is an array
         
@@ -1917,11 +1523,6 @@ class Bsc:
       end
     end
     
-    function beam = clearDz(beam)
-      % Clear dz
-      %
-      % Useful when generating beams using translations.
-      beam.dz = 0.0;
-    end
-  end
-end
+    def clear_dz(self):
+        self.dz = 0
+    
