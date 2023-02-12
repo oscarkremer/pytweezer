@@ -23,13 +23,13 @@ def test_sphere_boundary_points_values_r():
     radius = 1 
     numr = 100
     shape = Sphere(radius)
-    r, _, _, _, _, _, _ = shape.boundary_points(npts=numr)
+    r, _, _, _, _, _, _ = shape.gboundary_points(npts=numr)
     np.testing.assert_array_almost_equal(r, np.ones((r.shape)), 
         decimal=decimal, err_msg='Error computing r vector in boundary_points')
 
 def test_sphere_boundary_points_values_n():
     decimal = 3
-    radius = 1 
+    radius = 1
     numr = 100
     shape = Sphere(radius)
     _, _, _, n_rho, _, _, _ = shape.boundary_points(npts=numr)
