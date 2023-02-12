@@ -116,54 +116,39 @@ def genLG2vHG(order_paraxial):
 
     summed_matrix=zeros(size(normalisation_matrix));
 
-%special cases
-summed_matrix(:,1)=factorial(M(:,1))./factorial(M(:,1)-K(:,1));
-summed_matrix(1,:)=ones([1,floor(order_paraxial/2)+1]);
+    summed_matrix(:,1)=factorial(M(:,1))./factorial(M(:,1)-K(:,1));
+    summed_matrix(1,:)=ones([1,floor(order_paraxial/2)+1]);
 
-s_i=zeros(length(k)-1,floor(order_paraxial/2)+1);
+    s_i=zeros(length(k)-1,floor(order_paraxial/2)+1);
 
-for jj=1:length(n)-1
-    mm=order_paraxial-jj;
-    for kk=1:length(k)-1
-        s_i(kk,1)=factorial(jj)*factorial(mm)/factorial(mm-kk)/factorial(jj)*nchoosek(kk,0);
-        
-        for ii=1:kk
-            
-            s_i(kk,ii+1)=-(jj-ii+1)/(mm-kk+ii)/(ii)*(kk-ii+1)*s_i(kk,ii);
-            
-        end
-        
-    end
-    summed_matrix(2:end,jj+1)=sum(s_i,2);
-end
+    for jj=1:length(n)-1
+        mm=order_paraxial-jj;
+        for kk=1:length(k)-1
+            s_i(kk,1)=factorial(jj)*factorial(mm)/factorial(mm-kk)/factorial(jj)*nchoosek(kk,0);
+            for ii=1:kk                
+                s_i(kk,ii+1)=-(jj-ii+1)/(mm-kk+ii)/(ii)*(kk-ii+1)*s_i(kk,ii);
+        summed_matrix(2:end,jj+1)=sum(s_i,2);
+    block_to_mirror=normalisation_matrix.*summed_matrix./factorial(K).*(-1).^(P);
 
-%we now multiply for upper block!
-block_to_mirror=normalisation_matrix.*summed_matrix./factorial(K).*(-1).^(P);
+    output=zeros(order_paraxial+1);
+    outputt=zeros(order_paraxial+1);
 
-output=zeros(order_paraxial+1);
-outputt=zeros(order_paraxial+1);
+    outputt(1:floor(order_paraxial/2)+1,:) = [block_to_mirror(:,1:ceil(order_paraxial/2)),fliplr(block_to_mirror.*(-1).^(P.'))]; %
+    outputt(end-ceil(order_paraxial/2)+1:end,:)=flipud(outputt(1:ceil(order_paraxial/2),:));
 
-%we're going to produce the spinor inverse of what was in beijersbergen
-%1993.
-outputt(1:floor(order_paraxial/2)+1,:) = [block_to_mirror(:,1:ceil(order_paraxial/2)),fliplr(block_to_mirror.*(-1).^(P.'))]; %
-outputt(end-ceil(order_paraxial/2)+1:end,:)=flipud(outputt(1:ceil(order_paraxial/2),:));
+    outputt(ceil(order_paraxial/2)+1:end,2:2:end)=-outputt(ceil(order_paraxial/2)+1:end,2:2:end);
+    outputt(2:2:end,:)=-outputt(2:2:end,:);
+    output(1:floor((order_paraxial+1)/2),:)=1/sqrt(2)*(outputt(1:2:floor((order_paraxial+1)/2)*2,:)+outputt(2:2:floor((order_paraxial+1)/2)*2,:));
 
-outputt(ceil(order_paraxial/2)+1:end,2:2:end)=-outputt(ceil(order_paraxial/2)+1:end,2:2:end);
-outputt(2:2:end,:)=-outputt(2:2:end,:);
-output(1:floor((order_paraxial+1)/2),:)=1/sqrt(2)*(outputt(1:2:floor((order_paraxial+1)/2)*2,:)+outputt(2:2:floor((order_paraxial+1)/2)*2,:));
+    if ~rem(order_paraxial,2)
+        output(floor((order_paraxial+1)/2)+1,:)=outputt(end,:);
+    output(end-floor((order_paraxial+1)/2)+1:end,:)=fliplr(flipud(output(1:floor((order_paraxial+1)/2),:)));
+    output=flipud(output); 
+    LGlookups, HGlookups = np.meshgrid([0:order_paraxial],[0:order_paraxial]);
+    return output,LGlookups,HGlookups
 
-if ~rem(order_paraxial,2)
-    output(floor((order_paraxial+1)/2)+1,:)=outputt(end,:);
-end
 
-output(end-floor((order_paraxial+1)/2)+1:end,:)=fliplr(flipud(output(1:floor((order_paraxial+1)/2),:)));
-output=flipud(output);
-if nargout>1
-    [LGlookups,HGlookups]=meshgrid([0:order_paraxial],[0:order_paraxial]);
-end
-end
-
-function [modeweights,LGlookups,IGlookups]=genLG2IG(order_paraxial,xi)
+def [modeweights,LGlookups,IGlookups]=genLG2IG(order_paraxial,xi)
 % genLG2IG.m --- LG->IG conversion matrix for elipticity xi. A
 %		parameter of xi=0 gives the non-vortex LG modes.
 %		a parameter of xi=1e100 will give pretty HG modes.

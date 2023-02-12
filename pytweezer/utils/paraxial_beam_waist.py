@@ -1,4 +1,4 @@
-def paraxial_beam_waist(paraxial_order):
+def paraxial_beam_waist(paraxial_order, tolerance=0.00001):
     '''% PARAXIAL_BEAM_WAIST computes the re-normlaised beam waist for high-order
     % gaussian beams using a recursion to find a particular root of the function
     % x.^\lambda exp(-x^2).
@@ -18,13 +18,10 @@ def paraxial_beam_waist(paraxial_order):
         
         w0 = -w
         
-        while (abs(w-w0)>0.00001)
-            w0=w;
-            expw = exp(w);
-            
+        while (abs(w-w0) > tolerance):
+            w0 = w
+            expw = np.exp(w)  
             w=w0-(w0*expw+zz)/(expw+w0*expw); %Newton's rule... Usually this kind of method would find the real root i.e. W_0(z)... This finds W_{-1}(z) local to the beam waist of an LG beam.
-            
-        end
         
         w = sqrt(-abs(paraxial_order )/2.*w); %Beam waist in normalized units
     return w
