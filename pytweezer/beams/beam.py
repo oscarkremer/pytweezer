@@ -23,6 +23,136 @@ class Beam:
         self.basis = basis
         self.type = beam_type
 
+
+'''
+ function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)
+      % Helper to generate the visualisation data output.
+      % This function is not intended to be called directly, instead
+      % see :meth:`visualise` or :meth:`visualiseFarfield`.
+      %
+      % Usage
+      %   GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)
+      %   Takes a field_type string, the coordinates (either xyz or rtp),
+      %   and the data values (either vxyz or vrtp).
+      %
+      % Parameters
+      %   - xyz, rtp, vxyz, vrtp -- (Nx3 numeric) Coordinates in a
+      %     suitable form to be passed to `ott.utils.xyz2rtp` and similar
+      %     functions.  Pass empty arrays for unused values.
+      %   - field_type -- (enum) Type of field to calculate.
+      %     Supported types include:
+      %       - 'irradiance'  -- :math:`\sqrt{|Ex|^2 + |Ey|^2 + |Ez|^2}`
+      %       - 'E2' -- :math:`|Ex|^2 + |Ey|^2 + |Ez|^2`
+      %       - 'Sum(Abs(E))' -- :math:`|Ex| + |Ey| + |Ez|`
+      %
+      %       - Re(Er), Re(Et), Re(Ep), Re(Ex), Re(Ey), Re(Ez)
+      %       - Abs(Er), Abs(Et), Abs(Ep), Abs(Ex), Abs(Ey), Abs(Ez)
+      %       - Arg(Er), Arg(Et), Arg(Ep), Arg(Ex), Arg(Ey), Arg(Ez)
+      
+      assert(size(xyz, 2) == 3 || size(xyz, 2) == 0, ...
+        'xyz must be Nx3 matrix');
+      assert(size(vxyz, 2) == 3 || size(vxyz, 2) == 0, ...
+        'vxyz must be Nx3 matrix');
+      assert(size(rtp, 2) == 3 || size(rtp, 2) == 0, ...
+        'rtp must be Nx3 matrix');
+      assert(size(vrtp, 2) == 3 || size(vrtp, 2) == 0, ...
+        'vrtp must be Nx3 matrix');
+      
+      % Get the coordinates
+      if isempty(xyz) && ~isempty(rtp)
+        xyz = ott.utils.rtp2xyz(rtp);
+      elseif isempty(rtp) && ~isempty(xyz)
+        rtp = ott.utils.xyz2rtp(xyz);
+      elseif isempty(rpt) && isempty(xyz)
+        error('OTT:BSC:GetVisualisationData:no_coords', ...
+          'Must supply coordinates');
+      end
+      
+      % Get the data
+      if isempty(vxyz) && ~isempty(vrtp)
+        vxyz = ott.utils.rtpv2xyzv(vrtp, rtp);
+      elseif isempty(vrtp) && ~isempty(vxyz)
+        vrtp = ott.utils.xyzv2rtpv(vxyz, xyz);
+      elseif isempty(vrtp) && isempty(vxyz)
+        error('OTT:BSC:GetVisualisationData:no_data', ...
+          'Must supply data');
+      else
+        error('OTT:BSC:GetVisualisationData:too_much_data', ...
+          'Must supply only one data variable');
+      end
+      
+      % Generate the requested field
+      if strcmpi(field_type, 'irradiance')
+        data = sqrt(sum(abs(vxyz).^2, 2));
+      elseif strcmpi(field_type, 'E2')
+        data = sum(abs(vxyz).^2, 2);
+      elseif strcmpi(field_type, 'Sum(Abs(E))')
+        data = sum(abs(vxyz), 2);
+        
+      elseif strcmpi(field_type, 'Re(Er)')
+        data = real(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Re(Et)')
+        data = real(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Re(Ep)')
+        data = real(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Re(Ex)')
+        data = real(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Re(Ey)')
+        data = real(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Re(Ez)')
+        data = real(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Abs(Er)')
+        data = abs(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Abs(Et)')
+        data = abs(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Abs(Ep)')
+        data = abs(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Abs(Ex)')
+        data = abs(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Abs(Ey)')
+        data = abs(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Abs(Ez)')
+        data = abs(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Arg(Er)')
+        data = angle(vrtp(:, 1));
+      elseif strcmpi(field_type, 'Arg(Et)')
+        data = angle(vrtp(:, 2));
+      elseif strcmpi(field_type, 'Arg(Ep)')
+        data = angle(vrtp(:, 3));
+        
+      elseif strcmpi(field_type, 'Arg(Ex)')
+        data = angle(vxyz(:, 1));
+      elseif strcmpi(field_type, 'Arg(Ey)')
+        data = angle(vxyz(:, 2));
+      elseif strcmpi(field_type, 'Arg(Ez)')
+        data = angle(vxyz(:, 3));
+        
+      elseif strcmpi(field_type, 'Er')
+        data = vrtp(:, 1);
+      elseif strcmpi(field_type, 'Et')
+        data = vrtp(:, 2);
+      elseif strcmpi(field_type, 'Ep')
+        data = vrtp(:, 3);
+        
+      elseif strcmpi(field_type, 'Ex')
+        data = vxyz(:, 1);
+      elseif strcmpi(field_type, 'Ey')
+        data = vxyz(:, 2);
+      elseif strcmpi(field_type, 'Ez')
+        data = vxyz(:, 3);
+
+      else
+        error('OTT:BSC:GetVisualisationData:unknown_field_type', ...
+          'Unknown field type value');
+      end
+      
+    end
+  end
+'''
     @staticmethod
     def make_beam_vector(self, a, b, n, m, n_max):
         if not n.shape or not n:
@@ -38,10 +168,11 @@ class Beam:
         ci, c_in_beams = np.meshgrid(ci, np.arange(1, n_beams+1, 1), indexing='ij')
         a = csr_matrix((ci, c_in_beams, a), shape=(total_orders, n_beams)).toarray()
         a = csr_matrix((ci, c_in_beams, b), shape=(total_orders, n_beams)).toarray()        
-        [n, m] = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
+        n, m = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
         n = n.T
         m = m.T
         return a, b, n, m
+
 
     @staticmethod
     def parser_k_medium(self, **kwargs):
@@ -61,7 +192,7 @@ class Beam:
         else:
             raise ValueError('Unable to determine k_medium from inputs')
     
-    def translateZ_type_helper(self, z, n_max):
+    def translate_z_type_helper(self, z, n_max):
         if self.basis == 'incoming':
             translation_type = 'sbesselh2';
         elif self.basis == 'outgoing':
@@ -73,67 +204,61 @@ class Beam:
 
     def append(self, other):
         if self.n_beams == 0:
+            # DANGER: Have to implement this section
             beam = other
         else
-            beam.Nmax = max(beam.Nmax, other.Nmax);
-            other.Nmax = beam.Nmax;
-            beam.a = [beam.a, other.a];
-            beam.b = [beam.b, other.b];
+            self.n_max = max(self.n_max, other.n_max)
+            other.n_max = self.n_max
+            self.a = [self.a, other.a]
+            self.b = [self.b, other.b]
 
-    function varargout = paraxialFarfield(beam, varargin)
-      p = inputParser;
-      p.addParameter('calcE', true);
-      p.addParameter('calcH', nargout >= 2);
-      p.addParameter('saveData', false);
-      p.addParameter('data', []);
-      p.addParameter('mapping', 'sin');
-      p.addParameter('size', [50, 50]);
-      p.addParameter('thetaMax', pi/2);
-      p.addParameter('direction', 'pos');
-      p.parse(varargin{:});
+
+'''
+    def paraxial_far_field(self, varargin)
+        p = inputParser;
+        p.addParameter('calcE', true);
+        p.addParameter('calcH', nargout >= 2);
+        p.addParameter('saveData', false);
+        p.addParameter('data', []);
+        p.addParameter('mapping', 'sin');
+        p.addParameter('size', [50, 50]);
+        p.addParameter('thetaMax', pi/2);
+        p.addParameter('direction', 'pos');
+        p.parse(varargin{:});
       
-      % Calculate image locations
-      xrange = linspace(-1, 1, p.Results.size(1));
-      yrange = linspace(-1, 1, p.Results.size(2));
-      [xx, yy] = meshgrid(xrange, yrange);
-
-      % Calculate spherical coordinates for pixels
-      phi = atan2(yy, xx);
-      rr = sqrt(xx.^2 + yy.^2);
-      switch p.Results.mapping
+        xrange = linspace(-1, 1, p.Results.size(1));
+        yrange = linspace(-1, 1, p.Results.size(2));
+        [xx, yy] = meshgrid(xrange, yrange);
+        phi = atan2(yy, xx);
+        rr = sqrt(xx.^2 + yy.^2);
+        switch p.Results.mapping
         case 'sin'
-          theta = asin(rr);
+            theta = asin(rr);
         case 'tan'
-          theta = atan(rr);
+            theta = atan(rr);
         case 'theta'
-          theta = rr;
+            theta = rr;
         otherwise
-          error('Unknown mapping argument value, must be sin, tan or theta');
-      end
+            error('Unknown mapping argument value, must be sin, tan or theta');
+        end
+        thetaMax = Inf;
+        if ~isempty(p.Results.thetaMax)
+            thetaMax = p.Results.thetaMax;
+        end
+        pinside = imag(theta) == 0 & theta < thetaMax;
+        iphi = phi(pinside);
+        itheta = theta(pinside);
       
-      % Only include points within NA range
-      thetaMax = Inf;
-      if ~isempty(p.Results.thetaMax)
-        thetaMax = p.Results.thetaMax;
-      end
-
-      % Determine if the points need calculating
-      pinside = imag(theta) == 0 & theta < thetaMax;
-      iphi = phi(pinside);
-      itheta = theta(pinside);
-      
-      if strcmpi(p.Results.direction, 'neg')
-        itheta = pi - itheta;
-      elseif ~strcmpi(p.Results.direction, 'pos')
-        error('Direction must be ''pos'' or ''neg''');
-      end
-
-      % Calculate the electric field in the farfield
-      [E, H, data] = beam.farfield(itheta(:), iphi(:), ...
-        'saveData', p.Results.saveData, 'data', p.Results.data, ...
-        'calcE', p.Results.calcE, 'calcH', p.Results.calcH);
-      
-      if nargout >= 1
+        if strcmpi(p.Results.direction, 'neg')
+            itheta = pi - itheta;
+        elseif ~strcmpi(p.Results.direction, 'pos')
+            error('Direction must be \'pos\' or \'neg\'');
+        end
+        [E, H, data] = beam.farfield(itheta(:), iphi(:), ...
+            'saveData', p.Results.saveData, 'data', p.Results.data, ...
+            'calcE', p.Results.calcE, 'calcH', p.Results.calcH);
+        
+        if nargout >= 1
         
         if p.Results.calcE
           % Generate the requested field
@@ -165,6 +290,7 @@ class Beam:
 
           varargout{2} = Ht;
           varargout{2}(:, :, 2) = Hp;
+            return  varargout
         end
       end
       
@@ -173,7 +299,7 @@ class Beam:
       end
     end
 
-    function [E, H, data] = farfield(beam, theta, phi, varargin)
+    def [E, H, data] = farfield(beam, theta, phi, varargin)
       ip = inputParser;
       ip.addParameter('calcE', true);
       ip.addParameter('calcH', nargout >= 2);
@@ -306,12 +432,7 @@ class Beam:
 
     function [E, H, data] = emFieldRtp(beam, rtp, varargin)
       p = inputParser;
-      p.addParameter('calcE', true);
-      p.addParameter('calcH', nargout >= 2);
-      p.addParameter('saveData', false);
-      p.addParameter('data', []);
-      p.addParameter('coord', 'cartesian');
-      p.addParameter('cidx', []);
+  
       p.parse(varargin{:});
 
       % Scale the locations by the wave number (unitless coordinates)
@@ -523,7 +644,7 @@ class Beam:
       if strcmpi(p.Results.direction, 'neg')
         itheta = pi - itheta;
       elseif ~strcmpi(p.Results.direction, 'pos')
-        error('Direction must be ''pos'' or ''neg''');
+        error('Direction must be \'pos\' or \'neg\'');
       end
 
       % Calculate the electric field in the farfield
@@ -562,7 +683,9 @@ class Beam:
         varargout{2} = data;
       end
     end
+'''
 
+'''
     function varargout = visualise(beam, varargin)
       p = inputParser;
       p.addParameter('field', 'irradiance');
@@ -1148,7 +1271,12 @@ class Beam:
         n = [n; m];
       end
     end
+'''
 
+
+
+
+'''
     def divide(self, scalar):
         self.a = self.a/scalar
         self.b = self.b/scalar
@@ -1190,7 +1318,10 @@ class Beam:
       [E, ~, data] = beam.farfield(theta, phi, ...
           'saveData', p.Results.saveData, ...
           'data', p.Results.data);
+'''
 
+
+'''
       % Calculate the irradiance
       Eirr = sum(abs(E).^2, 1);
       int = sum(Eirr .* sin(theta.') .* dtheta .* dphi, 2);
@@ -1242,6 +1373,9 @@ class Beam:
           end
         end
 
+'''
+
+'''
         % Apply translation
         % We need Nmax+1 terms for the force calculation
         beam = beam.translateXyz(p.Results.position, 'Nmax', maxNmax2+1);
@@ -1391,4 +1525,4 @@ class Beam:
     
     def clear_dz(self):
         self.dz = 0
-    
+'''

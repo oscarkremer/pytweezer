@@ -1,8 +1,8 @@
-from .bsc import Bsc
+from .beam import Beam
 import numpy as np
 
 
-class BscPointmatch(Bsc):
+class Pointmatch(Beam):
     '''    %BscPointmatch base class for BSC generated using point matching
     % Provides support for both far-field and focal plane point matching.
     %

@@ -1,25 +1,27 @@
-classdef BscPmGauss < ott.BscPointmatch
-%BscPmGauss provides HG, LG and IG beams using point matching method
-%
-% Properties
-%  - gtype          --  Type of beam ('gaussian', 'lg', 'hg', or 'ig')
-%  - mode           --  Beam modes (2 or 4 element vector)
-%  - polarisation   --  Beam polarisation
-%  - truncation_angle -- Truncation angle for beam [rad]
-%  - offset         --  Offset for original beam calculation
-%  - angle          --  Angle of incoming beam waist
-%  - angular_scaling -- Angular scaling function (tantheta | sintheta)
-%  See :class:`+ott.Bsc` for inherited properties.
-%
-% This class is based on ``bsc_pointmatch_farfield.m`` and
-% ``bsc_pointmatch_focalplane.m`` from OTT (version 1).
-%
-% See also BscPmGauss.
+from .point_match import PointMatch
 
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
+class Gaussian(PointMatch):
+    '''    %BscPmGauss provides HG, LG and IG beams using point matching method
+    %
+    % Properties
+    %  - gtype          --  Type of beam ('gaussian', 'lg', 'hg', or 'ig')
+    %  - mode           --  Beam modes (2 or 4 element vector)
+    %  - polarisation   --  Beam polarisation
+    %  - truncation_angle -- Truncation angle for beam [rad]
+    %  - offset         --  Offset for original beam calculation
+    %  - angle          --  Angle of incoming beam waist
+    %  - angular_scaling -- Angular scaling function (tantheta | sintheta)
+    %  See :class:`+ott.Bsc` for inherited properties.
+    %
+    % This class is based on ``bsc_pointmatch_farfield.m`` and
+    % ``bsc_pointmatch_focalplane.m`` from OTT (version 1).
+    %
+    % See also BscPmGauss.
 
-  properties (SetAccess=protected)
+    % This file is part of the optical tweezers toolbox.
+    % See LICENSE.md for information about using/distributing this file.
+    '''
+    '''    properties (SetAccess=protected)
     gtype              % Type of beam ('gaussian', 'lg', 'hg', or 'ig')
     mode               % Beam modes (2 or 4 element vector)
     polarisation       % Beam polarisation
@@ -28,79 +30,67 @@ classdef BscPmGauss < ott.BscPointmatch
     angle              % Angle of incoming beam waist
     translation_method % Translation method to use
     angular_scaling    % Angular scaling function (tantheta | sintheta)
-  end
-
-  % TODO: Incorperate bsc_pointmatch_focalplane option for gaussian beams.
-
-  methods (Static)
-    function l = supported_beam_type(s)
-      l = strcmp(s, 'lg') || strcmp(s, 'hg') || strcmp(s, 'ig');
     end
-    
-    function validate_translation_method(method)
-      assert(any(strcmpi(method, {'Default', 'NewBeamOffset'})), ...
-        'Translation method must be Default or NewBeamOffset');
-    end
-  end
+    '''
+    #% TODO: Incorperate bsc_pointmatch_focalplane option for gaussian beams.
 
-  methods
-    function beam = BscPmGauss(varargin)
-      % Construct a new IG, HG, LG or Gaussian beam.
-      %
-      % Usage
-      %   BscPmGauss(...) constructs a new Gassian beam (LG00).
-      %
-      %   BscPmGauss(type, mode, ...) constructs a new beam with the given type.
-      %   Supported types [mode]:
-      %    - 'lg' -- Laguarre-Gauss  [ radial azimuthal ]
-      %    - 'hg' -- Hermite-Gauss   [ m n ]
-      %    - 'ig' -- Ince-Gauss      [ paraxial azimuthal parity elipticity ]
-      %
-      % Optional named parameters
-      %   - 'Nmax'  --          Truncation number for beam shape coefficients.
-      %     If omitted, Nmax is initially set to 100, the beam is
-      %     calculated and Nmax is reduced so that the power does
-      %     not drop significantly.
-      %   - 'zero_rejection_level' -- Level used to determine non-zero
-      %     beam coefficients in far-field point matching.  Default: 1e-8.
-      %
-      %   - 'NA'     --         Numerical aperture of objective
-      %   - 'polarisation'  --  Polarisation of the beam
-      %   - 'power'         --  Rescale the power of the beam (default: [])
-      %
-      %   - 'omega'         --  Optical angular frequency (default: 2*pi)
-      %   - 'k_medium'      --  Wave number in medium
-      %   - 'index_medium'  --  Refractive index of medium
-      %   - 'wavelength_medium' -- Wavelength in medium
-      %
-      %   - 'wavelength0'   --  Wavelength in vacuum
-      %   - 'offset'        --  Offset of the beam from origin
-      %
-      %   - translation_method -- Method to use when calculating translations.
-      %     Can either be 'Default' or 'NewBeamOffset', the latter calculates
-      %     new beam shape coefficients for every new position.
-      %
-      %   - angular_scaling (enum) -- Angular scaling function.
-      %     For a discussion of this parameter, see Documentation
-      %     (:ref:`conception-angular-scaling`).
-      %      - 'sintheta' -- angular scaling function is the same as the
-      %        one present in standard microscope objectives.
-      %        Preserves high order mode shape!
-      %      - 'tantheta' -- default angular scaling function,
-      %        "small angle approximation" which is valid for thin
-      %        lenses ONLY. Does not preserve high order mode shape
-      %        at large angles.
-      %
-      %   - truncation_angle (numeric) -- Adds a hard edge to the
-      %     beam, this can be useful for simulating the back-aperture
-      %     of a microscope objective.  Default: ``pi/2`` (i.e. no edge).
-      %
-      %   - truncation_angle_deg -- Same as `truncation_angle` but
-      %     with degrees instead of radians.
-
-      beam = beam@ott.BscPointmatch(varargin{:});
-      beam.type = 'incident';
-      beam.basis = 'regular';
+    def __init__(self, *args, **kwargs):
+        '''      % Construct a new IG, HG, LG or Gaussian beam.
+        %
+        % Usage
+        %   BscPmGauss(...) constructs a new Gassian beam (LG00).
+        %
+        %   BscPmGauss(type, mode, ...) constructs a new beam with the given type.
+        %   Supported types [mode]:
+        %    - 'lg' -- Laguarre-Gauss  [ radial azimuthal ]
+        %    - 'hg' -- Hermite-Gauss   [ m n ]
+        %    - 'ig' -- Ince-Gauss      [ paraxial azimuthal parity elipticity ]
+        %
+        % Optional named parameters
+        %   - 'Nmax'  --          Truncation number for beam shape coefficients.
+        %     If omitted, Nmax is initially set to 100, the beam is
+        %     calculated and Nmax is reduced so that the power does
+        %     not drop significantly.
+        %   - 'zero_rejection_level' -- Level used to determine non-zero
+        %     beam coefficients in far-field point matching.  Default: 1e-8.
+        %
+        %   - 'NA'     --         Numerical aperture of objective
+        %   - 'polarisation'  --  Polarisation of the beam
+        %   - 'power'         --  Rescale the power of the beam (default: [])
+        %
+        %   - 'omega'         --  Optical angular frequency (default: 2*pi)
+        %   - 'k_medium'      --  Wave number in medium
+        %   - 'index_medium'  --  Refractive index of medium
+        %   - 'wavelength_medium' -- Wavelength in medium
+        %
+        %   - 'wavelength0'   --  Wavelength in vacuum
+        %   - 'offset'        --  Offset of the beam from origin
+        %
+        %   - translation_method -- Method to use when calculating translations.
+        %     Can either be 'Default' or 'NewBeamOffset', the latter calculates
+        %     new beam shape coefficients for every new position.
+        %
+        %   - angular_scaling (enum) -- Angular scaling function.
+        %     For a discussion of this parameter, see Documentation
+        %     (:ref:`conception-angular-scaling`).
+        %      - 'sintheta' -- angular scaling function is the same as the
+        %        one present in standard microscope objectives.
+        %        Preserves high order mode shape!
+        %      - 'tantheta' -- default angular scaling function,
+        %        "small angle approximation" which is valid for thin
+        %        lenses ONLY. Does not preserve high order mode shape
+        %        at large angles.
+        %
+        %   - truncation_angle (numeric) -- Adds a hard edge to the
+        %     beam, this can be useful for simulating the back-aperture
+        %     of a microscope objective.  Default: ``pi/2`` (i.e. no edge).
+        %
+        %   - truncation_angle_deg -- Same as `truncation_angle` but
+        %     with degrees instead of radians.
+        '''
+        super().__init__(*args, **kwargs)
+        self.beam_type = 'incident';
+        beam.basis = 'regular';
 
       % Parse inputs
       p = inputParser;
@@ -427,6 +417,24 @@ classdef BscPmGauss < ott.BscPointmatch
 
       ott.warning('external');
     end
+
+
+
+    @staticmethod
+    def supported_beam_type(self, s):
+        if s in ('lg', 'hg', 'ig'):
+            return True
+        else:
+            raise ValueError('Beam type inserted not valid! Allowed values are `lg`, `hg` or `ig`.')
+
+    @staticmethod
+    def validate_translation_method(self, method):
+        if method in ('Default', 'NewBeamOffset'):
+            return True
+        else:
+            raise ValueError('Translation method inserted\
+                not valid! Allowed values are `Default` or `NewBeamOffset`.')
+
     
     function varargout = translateZ(beam, varargin)
       %TRANSLATEZ translate a beam along the z-axis
