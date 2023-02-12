@@ -1,7 +1,8 @@
+import warnings
 import numpy as np
-from pytweezer.utils import combined_index
+from pytweezer.utils import combined_index, translate_z
 
-class Bsc:
+class Beam:
     def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
         self.dz = dz
         self.k_medium = k_m
@@ -24,196 +25,61 @@ class Bsc:
 
     @staticmethod
     def make_beam_vector(self, a, b, n, m, n_max):
-    #function [a, b, n, m] = make_beam_vector(a, b, n, m, Nmax)
-     # %MAKE_BEAM_VECTOR converts output of bsc_* functions to sparse vectors
+        if not n.shape or not n:
+            warnings.warn('No modes in beam')
+        if not n.shape or not n:
+            n_max = 0
+        else:
+            n_max = n.max()
 
-#      % Check we have some modes#
-  #    if isempty(n)
-##        warning('OTT:BSC:make_beam_vector:no_modes', ...
- #           'No modes in beam or all zero modes.');
-   #   end
+        total_orders = combined_index(n_max, n_max)
+        ci = combined_index(n, m)
+        nbeams = a.shape[1]
+        ci, c_in_beams = np.meshgrid(ci, np.arange(1, n_beams+1, 1), indexing='ij')
+        a = csr_matrix((ci, c_in_beams, a), shape=(total_orders, n_beams)).toarray()
+        a = csr_matrix((ci, c_in_beams, b), shape=(total_orders, n_beams)).toarray()        
+        [n, m] = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
+        n = n.T
+        m = m.T
+        return a, b, n, m
 
-      % Handle default value for Nmax
-      if nargin < 5
-        if isempty(n)
-          Nmax = 0;
+    @staticmethod
+    def parser_k_medium(self, **kwargs):
+        if kwargs.get('k_m') and kwargs.get('lambda_m'):
+            self.k_m = kwargs.get('k_m')
+            warnings.warn('Both k_m and lambda_m defined, only k_m is going to \
+                be used.')
+        elif kwargs.get('k_m'):
+            self.k_m = kwargs.get('k_m')
+        elif kwargs.get('lambda_m'):
+            self.k_m = 2.0*np.pi/kwargs['lambda_m']
+        elif kwargs.get('index_m'):
+            if kwargs.get('lambda_0'):   
+                self.k_m = kwargs.get('index_m')*2*np.pi/kwargs.get('lambda_0')
+            else:
+                raise ValueError('Wavelength for vacuum must be specified to use medium refraction index')
+        else:
+            raise ValueError('Unable to determine k_medium from inputs')
+    
+    def translateZ_type_helper(self, z, n_max):
+        if self.basis == 'incoming':
+            translation_type = 'sbesselh2';
+        elif self.basis == 'outgoing':
+            translation_type = 'sbesselh1';
+        elif self.basis == 'regular':
+            translation_type = 'sbesselj'
+        A, B = translate_z(n_max, z, function_type=translation_type)
+        return A, B
+
+    def append(self, other):
+        if self.n_beams == 0:
+            beam = other
         else
-          Nmax = max(n);
-        end
-      end
+            beam.Nmax = max(beam.Nmax, other.Nmax);
+            other.Nmax = beam.Nmax;
+            beam.a = [beam.a, other.a];
+            beam.b = [beam.b, other.b];
 
-      total_orders = ott.utils.combined_index(Nmax, Nmax);
-      ci = ott.utils.combined_index(n, m);
-      nbeams = size(a, 2);
-
-      [ci, cinbeams] = ndgrid(ci, 1:nbeams);
-
-      a = sparse(ci, cinbeams, a, total_orders, nbeams);
-      b = sparse(ci, cinbeams, b, total_orders, nbeams);
-
-      [n, m] = ott.utils.combined_index(1:Nmax^2+2*Nmax);
-      n = n.T;
-      m = m.T;
-      return a, b, n, m
-
-    @staticmethod
-    def parser_k_medium(p, default):
-      %PARSER_K_MEDIUM helper to get k_medium from a parser object
-
-      if ~isempty(p.Results.k_medium)
-        k_medium = p.Results.k_medium;
-      elseif ~isempty(p.Results.wavelength_medium)
-        k_medium = 2.0*pi/p.Results.wavelength_medium;
-      elseif ~isempty(p.Results.index_medium)
-        if isempty(p.Results.wavelength0)
-          error('wavelength0 must be specified to use index_medium');
-        end
-        k_medium = p.Results.index_medium*2.0*pi/p.Results.wavelength0;
-      elseif nargin == 2
-        k_medium = default;
-      else
-        error('Unable to determine k_medium from inputs');
-      end
-    end
-
-    @staticmethod
-    function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)  
-      assert(size(xyz, 2) == 3 || size(xyz, 2) == 0, ...
-        'xyz must be Nx3 matrix');
-      assert(size(vxyz, 2) == 3 || size(vxyz, 2) == 0, ...
-        'vxyz must be Nx3 matrix');
-      assert(size(rtp, 2) == 3 || size(rtp, 2) == 0, ...
-        'rtp must be Nx3 matrix');
-      assert(size(vrtp, 2) == 3 || size(vrtp, 2) == 0, ...
-        'vrtp must be Nx3 matrix');
-      
-      % Get the coordinates
-      if isempty(xyz) && ~isempty(rtp)
-        xyz = ott.utils.rtp2xyz(rtp);
-      elseif isempty(rtp) && ~isempty(xyz)
-        rtp = ott.utils.xyz2rtp(xyz);
-      elseif isempty(rpt) && isempty(xyz)
-        error('OTT:BSC:GetVisualisationData:no_coords', ...
-          'Must supply coordinates');
-      end
-      
-      % Get the data
-      if isempty(vxyz) && ~isempty(vrtp)
-        vxyz = ott.utils.rtpv2xyzv(vrtp, rtp);
-      elseif isempty(vrtp) && ~isempty(vxyz)
-        vrtp = ott.utils.xyzv2rtpv(vxyz, xyz);
-      elseif isempty(vrtp) && isempty(vxyz)
-        error('OTT:BSC:GetVisualisationData:no_data', ...
-          'Must supply data');
-      else
-        error('OTT:BSC:GetVisualisationData:too_much_data', ...
-          'Must supply only one data variable');
-      end
-      
-      % Generate the requested field
-      if strcmpi(field_type, 'irradiance')
-        data = sqrt(sum(abs(vxyz).^2, 2));
-      elseif strcmpi(field_type, 'E2')
-        data = sum(abs(vxyz).^2, 2);
-      elseif strcmpi(field_type, 'Sum(Abs(E))')
-        data = sum(abs(vxyz), 2);
-        
-      elseif strcmpi(field_type, 'Re(Er)')
-        data = real(vrtp(:, 1));
-      elseif strcmpi(field_type, 'Re(Et)')
-        data = real(vrtp(:, 2));
-      elseif strcmpi(field_type, 'Re(Ep)')
-        data = real(vrtp(:, 3));
-        
-      elseif strcmpi(field_type, 'Re(Ex)')
-        data = real(vxyz(:, 1));
-      elseif strcmpi(field_type, 'Re(Ey)')
-        data = real(vxyz(:, 2));
-      elseif strcmpi(field_type, 'Re(Ez)')
-        data = real(vxyz(:, 3));
-        
-      elseif strcmpi(field_type, 'Abs(Er)')
-        data = abs(vrtp(:, 1));
-      elseif strcmpi(field_type, 'Abs(Et)')
-        data = abs(vrtp(:, 2));
-      elseif strcmpi(field_type, 'Abs(Ep)')
-        data = abs(vrtp(:, 3));
-        
-      elseif strcmpi(field_type, 'Abs(Ex)')
-        data = abs(vxyz(:, 1));
-      elseif strcmpi(field_type, 'Abs(Ey)')
-        data = abs(vxyz(:, 2));
-      elseif strcmpi(field_type, 'Abs(Ez)')
-        data = abs(vxyz(:, 3));
-        
-      elseif strcmpi(field_type, 'Arg(Er)')
-        data = angle(vrtp(:, 1));
-      elseif strcmpi(field_type, 'Arg(Et)')
-        data = angle(vrtp(:, 2));
-      elseif strcmpi(field_type, 'Arg(Ep)')
-        data = angle(vrtp(:, 3));
-        
-      elseif strcmpi(field_type, 'Arg(Ex)')
-        data = angle(vxyz(:, 1));
-      elseif strcmpi(field_type, 'Arg(Ey)')
-        data = angle(vxyz(:, 2));
-      elseif strcmpi(field_type, 'Arg(Ez)')
-        data = angle(vxyz(:, 3));
-        
-      elseif strcmpi(field_type, 'Er')
-        data = vrtp(:, 1);
-      elseif strcmpi(field_type, 'Et')
-        data = vrtp(:, 2);
-      elseif strcmpi(field_type, 'Ep')
-        data = vrtp(:, 3);
-        
-      elseif strcmpi(field_type, 'Ex')
-        data = vxyz(:, 1);
-      elseif strcmpi(field_type, 'Ey')
-        data = vxyz(:, 2);
-      elseif strcmpi(field_type, 'Ez')
-        data = vxyz(:, 3);
-
-      else
-        error('OTT:BSC:GetVisualisationData:unknown_field_type', ...
-          'Unknown field type value');
-      end
-      
-    end
-  end
-  
-  methods (Access=protected)
-    
-    function [A, B] = translateZ_type_helper(beam, z, Nmax)
-      switch beam.basis
-        case 'incoming'
-          translation_type = 'sbesselh2';
-        case 'outgoing'
-          translation_type = 'sbesselh1';
-        case 'regular'
-          translation_type = 'sbesselj';
-      end
-      
-      % Calculate tranlsation matrices
-      [A, B] = ott.utils.translate_z(Nmax, z, 'type', translation_type);
-      
-    end
-    
-  end
-
-  methods
-
-    def append(self, other)
-      if self.n_beams == 0
-        beam = other
-      else
-        beam.Nmax = max(beam.Nmax, other.Nmax);
-        other.Nmax = beam.Nmax;
-        beam.a = [beam.a, other.a];
-        beam.b = [beam.b, other.b];
-      end
-    end
-    
     function varargout = paraxialFarfield(beam, varargin)
       p = inputParser;
       p.addParameter('calcE', true);
