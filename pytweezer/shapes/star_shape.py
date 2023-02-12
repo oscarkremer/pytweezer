@@ -75,35 +75,33 @@ class StarShape(Shape, ABC):
 #        varargout = { X, Y, Z }
         return varargout
 
-    def voxels(self, shape, spacing, varargin):
-        '''
-        p = inputParser;
-        p.addParameter('plotoptions',
-            'MarkerFaceColor', 'w', ...
-            'MarkerEdgeColor', [.5 .5 .5], ...
-            'MarkerSize', 20*spacing/shape.maxRadius});
-        p.addParameter('visualise', nargout == 0);
-        p.addParameter('origin', 'shape');
-        p.addParameter('even_range', false);
-        p.parse(varargin{:});
-        numr = ceil(shape.maxRadius / spacing);
-      
-        if p.Results.even_range:
+    def voxels(self, spacing:float, **kwargs):
+#        p.addParameter('plotoptions',
+#            'MarkerFaceColor', 'w', ...
+#            'MarkerEdgeColor', [.5 .5 .5], ...
+#           'MarkerSize', 20*spacing/shape.maxRadius});
+#        p.addParameter('visualise', nargout == 0);
+#        p.addParameter('origin', 'shape')
+        if not kwargs.get('even_range'):
+            kwargs['even_range'] = False
+#        p.addParameter('even_range', False)
+        numr = np.ceil(self.max_radius/spacing)      
+        if kwargs['even_range']:
             numr = numr + 0.5
-        rrange = (-numr:numr)*spacing;
-        [xx, yy, zz] = meshgrid(rrange, rrange, rrange);
-        mask = shape.insideXyz(xx, yy, zz, 'origin', 'shape');
-        xyz = [xx(mask).T; yy(mask).T; zz(mask).T];
-        if strcmpi(p.Results.origin, 'world')
-            xyz = xyz + shape.position
-        elif strcmpi(p.Results.origin, 'shape')
+        rrange = np.arange(-numr, numr)*spacing
+        print(rrange)
+        xx, yy, zz = np.meshgrid(rrange, rrange, rrange)
+        mask = self.inside_xyz(xx, yy, zz, origin='shape')
+        xyz = [xx[mask].T, yy[mask].T, zz[mask].T]
+        origin = kwargs.get('origin') if kwargs.get('origin') else 'shape'
+        if origin == 'world':
+            xyz = xyz + self.position
+        elif origin == 'shape':
             pass
         else:
-            raise ValueError('Origin must be ''world'' or ''shape)
-        
-        '''
-        pass
-
+            raise ValueError('Origin must be \'world\' or \'shape\'')
+    
+    
     def normals_xyz(self, shape, theta, phi):
         [theta,phi] = ott.utils.matchsize(theta, phi)
         n = rtpv2xyzv(shape.normals(theta, phi), ...

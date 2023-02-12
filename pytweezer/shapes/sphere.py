@@ -8,11 +8,12 @@ class Sphere(StarShape, AxiSymShape):
     def __init__(self, radius, position=np.array([])):
         self.__radius__ = radius
         if not position.size:
-            pass
+            self.position = np.array([0, 0, 0])
         else:
             self.position = position
         self.perimeter = self.get_perimeter()
         self.volume = self.get_volume()
+        self.max_radius = radius
 
     def get_max_radius(self):
         return self.__radius__
