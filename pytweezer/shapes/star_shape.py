@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 from abc import ABC, abstractmethod
 from numpy.linalg import norm
+import matplotlib.pyplot as plt
 from pytweezer.utils import angular_grid, match_size, xyz2rtp, rtp2xyz
 from .shape import Shape
 
@@ -76,12 +77,16 @@ class StarShape(Shape, ABC):
         return varargout
 
     def voxels(self, spacing:float, **kwargs):
-#        p.addParameter('plotoptions',
-#            'MarkerFaceColor', 'w', ...
-#            'MarkerEdgeColor', [.5 .5 .5], ...
-#           'MarkerSize', 20*spacing/shape.maxRadius});
-#        p.addParameter('visualise', nargout == 0);
-#        p.addParameter('origin', 'shape')
+        if not kwargs.get('plot_config'):
+            plot_config = {
+                'edgecolors': 'k',
+                'c': 'w',
+                's': 20*spacing/self.max_radius,
+            }
+        else:
+            plot_config = kwargs['plot_config']
+        if not kwargs.get('plot'):
+            kwargs['plot'] = False
         if not kwargs.get('even_range'):
             kwargs['even_range'] = False
 #        p.addParameter('even_range', False)
@@ -99,7 +104,15 @@ class StarShape(Shape, ABC):
             pass
         else:
             raise ValueError('Origin must be \'world\' or \'shape\'')
-    
+        if kwargs['plot']:
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+            ax.scatter(xyz[0,:], xyz[1,:], xyz[2,:], **plot_config)
+            ax.set_xlabel('X axis')
+            ax.set_ylabel('Y axis')
+            ax.set_zlabel('Z axis')
+            plt.show()
+        return xyz
     
     def normals_xyz(self, shape, theta, phi):
         [theta,phi] = ott.utils.matchsize(theta, phi)

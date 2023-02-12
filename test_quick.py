@@ -4,9 +4,10 @@ import numpy as np
 decimal = 3
 radius = 1 
 numr = 100
-offset = np.array([1,0,0])
+offset = np.array([1,0,0]).reshape((3, 1))
 sphere_1 = Sphere(radius)
 sphere_2 = Sphere(radius, position=offset)
 spacing = 0.1
-voxels1 = sphere_1.voxels(spacing, origin='world') + offset
+voxels1 = sphere_1.voxels(spacing, origin='world', plot=True) + offset
 voxels2 = sphere_2.voxels(spacing, origin='world')
+print(voxels1)
