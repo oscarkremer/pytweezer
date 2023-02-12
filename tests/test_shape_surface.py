@@ -1,37 +1,44 @@
 import pytest
+import warnings
 import numpy as np
+
+warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
+from numpy import matlib as matlib
 from pytweezer.shapes import Sphere
+from pytweezer.utils import angular_grid
 
-def test_sphere_boundary_points():
+def test_sphere_radii():
     decimal = 3
     radius = 1 
-    numr = 100
+    theta, phi = angular_grid(3, 3)
     shape = Sphere(radius)
-    r, t, p, n_rho, n_theta, n_phi, ds = shape.boundary_points(npts=numr)
-    np.testing.assert_array_almost_equal(shape.perimeter, 6.2832, decimal=decimal, err_msg='Error computing perimeter of sphere')
+    r = shape.radii(theta, phi)
+    sz = theta.size
+    np.testing.assert_array_almost_equal(r, matlib.repmat(1, 1, sz), decimal=decimal,
+        err_msg='Error for radii function of Sphere shape')
 
-def test_sphere_boundary_points_shape_rtp():
+
+def test_sphere_normals():
     decimal = 3
     radius = 1 
-    numr = 100
+    theta, phi = angular_grid(3, 3)
     shape = Sphere(radius)
-    r, _, _, _, _, _, _ = shape.boundary_points(npts=numr)
-    assert r.shape[0]==numr, 'Error in the shape of the returned vector for radial coordinate'
+    n = shape.normals(theta, phi)
+    sz = theta.size
 
-def test_sphere_boundary_points_values_r():
+    np.testing.assert_array_almost_equal(n, matlib.repmat([1, 0, 0], 1, sz), decimal=decimal,
+        err_msg='Error for normal function of Sphere shape')
+
+#    testCase.verifyThat(n, IsEqualTo(repmat([1.0, 0, 0], sz, 1), ...
+#        'Within', AbsoluteTolerance(tol)), ...
+#        'Sphere normals should be [1 0 0]');
+
+def test_sphere_axial_symmetry():
     decimal = 3
     radius = 1 
-    numr = 100
+    theta, phi = angular_grid(3, 3)
     shape = Sphere(radius)
-    r, _, _, _, _, _, _ = shape.boundary_points(npts=numr)
-    np.testing.assert_array_almost_equal(r, np.ones((r.shape)), 
-        decimal=decimal, err_msg='Error computing r vector in boundary_points')
-
-def test_sphere_boundary_points_values_n():
-    decimal = 3
-    radius = 1 
-    numr = 100
-    shape = Sphere(radius)
-    _, _, _, n_rho, _, _, _ = shape.boundary_points(npts=numr)
-    np.testing.assert_array_almost_equal(n_rho, np.ones((n_rho.shape)), 
-        decimal=decimal, err_msg='Error computing n_rho vector in boundary_points')
+    sz = theta.size
+    _, _, rotsym = shape.axial_symmetry()
+#    testCase.verifyThat(rotsym, IsEqualTo(0), ...
+#        'Sphere rotational symmetry incorrect');

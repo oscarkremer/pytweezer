@@ -22,15 +22,17 @@ class Sphere(StarShape, AxiSymShape):
         return 4/3*np.pi*np.power(self.__radius__, 3)
 
     def get_perimeter(self):
-      return 2.0 * np.pi * self.__radius__
+      return 2.0*np.pi*self.__radius__
 
     def radii(self, theta, phi):
         theta, phi = match_size(theta, phi)
-        return np.ones(theta.shape)*self.__radius__
+        return self.__radius__*np.ones(theta.shape)
 
     def normals(self, theta, phi):
         theta, phi = match_size(theta, phi)
-        return np.ones(theta.shape) * np.array([ 1, 0, 0 ])
+        print(theta.shape)
+        N = max(theta.shape)
+        return np.ones((N, N))*np.array([[1], [0], [0]])
 
     def boundary_points(self, **kwargs):
         ntheta = self.boundary_points_npts(**kwargs)

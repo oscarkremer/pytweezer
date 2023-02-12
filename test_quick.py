@@ -1,13 +1,14 @@
 from pytweezer.shapes import Sphere
 import numpy as np
+from pytweezer.utils import angular_grid
+from numpy import matlib as matlib
 
 decimal = 3
 radius = 1 
-numr = 100
-offset = np.array([1,0,0]).reshape((3, 1))
-sphere_1 = Sphere(radius)
-sphere_2 = Sphere(radius, position=offset)
-spacing = 0.1
-voxels1 = sphere_1.voxels(spacing, origin='world', plot=True) + offset
-voxels2 = sphere_2.voxels(spacing, origin='world')
-print(voxels1)
+theta, phi = angular_grid(3, 3)
+print(phi)
+shape = Sphere(radius)
+n = shape.normals(theta, phi)
+sz = theta.size
+print(n, matlib.repmat(1.0, 1, sz))
+#    testCase.verifyThat(r, IsE

@@ -18,12 +18,7 @@ def test_voxel_positions_with_offset():
     sphere_1 = Sphere(radius)
     sphere_2 = Sphere(radius, position=np.array([1,0,0]))
     spacing = 0.1
-    voxels1 = sphere_1.voxels(spacing, origin='world') + np.array([1, 0, 0])
+    voxels1 = sphere_1.voxels(spacing, origin='world') + np.array([1, 0, 0]).reshape((3,1))
     voxels2 = sphere_2.voxels(spacing, origin='world')
-
-
-'''
-  testCase.verifyThat(voxels2, IsEqualTo(voxels1, ...
-      'Within', AbsoluteTolerance(tol)), ...
-      'Incorrect voxel positions');
-'''
+    np.testing.assert_array_almost_equal(voxels1, voxels2, decimal=decimal,
+        err_msg='Error for spherical bessel function derivative computation')

@@ -20,12 +20,12 @@ from pytweezer.utils import sbesselj, sbesselh
     )
 )
 def test_spherical_bessel_function(n, kr, verbose, expected_jn, expected_djn):
-  decimal = 3
-  jn, djn = sbesselj(n, kr, verbose=verbose)
-  np.testing.assert_array_almost_equal(jn, expected_jn, decimal=decimal, 
-    err_msg='Error for spherical bessel function computation!')
-  np.testing.assert_array_almost_equal(djn, expected_djn, decimal=decimal,
-    err_msg='Error for spherical bessel function derivative computation')
+    decimal = 3
+    jn, djn = sbesselj(n, kr, verbose=verbose)
+    np.testing.assert_array_almost_equal(jn, expected_jn, decimal=decimal, 
+        err_msg='Error for spherical bessel function computation!')
+    np.testing.assert_array_almost_equal(djn, expected_djn, decimal=decimal,
+        err_msg='Error for spherical bessel function derivative computation')
 
 
 @pytest.mark.parametrize(
