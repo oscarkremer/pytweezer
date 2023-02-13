@@ -1,6 +1,6 @@
 import numpy as np
 from .point_match import PointMatch
-from pytweezer.utils import angular_grid, combined_index, paraxial_beam_waist
+from pytweezer.utils import angular_grid, combined_index, laguerre, paraxial_beam_waist
 from numpy.linalg import norm
 
 class Gaussian(PointMatch):
@@ -15,7 +15,7 @@ class Gaussian(PointMatch):
                         verbose=False,
                         translation_method='default',
                         omega=2*np.pi,
-                        index_m=1,
+                        index_m=1.33,
                         na=1.02,
                         angle=0,
                         truncation_angle=np.pi/2,
@@ -52,17 +52,15 @@ class Gaussian(PointMatch):
             row = (azimuthal_mode+paraxial_order)/2+1            
             i2_out = np.arange(-paraxial_order, paraxial_order+1, 2).T
             i1_out = np.floor((paraxial_order-np.abs(i2_out))/2)
-            initial_mode = np.array([i1_out, i2_out])
-            print(mode_weights, row, i2_out, i1_out, initial_mode)
+            initial_mode = np.array([i1_out, i2_out]).T
         elif self.beam_function == 'ig':
             raise ValueError('Beam function not implemented yet!')
-        keepz = np.where(np.abs(mode_weights[row-1, :]) > 0)
-        initial_mode = initial_mode[keepz, :]
-        c = mode_weights[row,keepz]
-        self.angle = np.asin(na/self.index_m)
+        keepz = np.argwhere(np.abs(mode_weights[int(row-1),:]) > 0)
+        initial_mode = initial_mode[keepz, :][0]
+        c = mode_weights[int(row-1), keepz]
+        self.angle = np.arcsin(na/self.index_m)
         x_comp = polarization[0]
         y_comp = polarization[1]
-        offset = offset
         if offset.size == 3 and (np.abs(offset[:2])>0).any():
             if self.translation_method == 'default':
                 warnings.warn('Beam offsets with x and y components cannot be \
@@ -70,17 +68,17 @@ class Gaussian(PointMatch):
                     calculation will be much slower. It is highly recommended \
                     that a combination of rotations and translations are \
                     used on BSCs instead.')                
-            axisymmetry = 0
+            axi_symmetry = 0
         w0 = paraxial_beam_waist(paraxial_order)
-        wscaling = 1/np.tan(np.abs(beam_angle_deg/180*np.pi))
-        n_theta = (nmax + 1)
-        n_phi = 2*(nmax + 1)
-        if axisymmetry:
-            ntheta = 2*(nmax+1)
-            nphi = 3
+        wscaling = 1/np.tan(np.abs(self.angle))
+        n_theta = (n_max + 1)
+        n_phi = 2*(n_max + 1)
+        if axi_symmetry:
+            n_theta = 2*(n_max+1)
+            n_phi = 3
             if self.beam_function == 'lg':
-                nphi = paraxial_order + 3 - np.remainder(paraxial_order,2)
-        if self.offset == np.array([[0], [0], [0]]):
+                n_phi = paraxial_order + 3 - np.remainder(paraxial_order,2)
+        if norm(self.offset - np.array([[0], [0], [0]])) > 1e-12:
             offset_lambda = norm(offset)*self.k_medium/(2*np.pi)
             n_theta = max(n_theta, 3*np.ceil(offset_lambda))
             n_phi = max(n_phi, 2*3*np.ceil(offset_lambda))
@@ -88,25 +86,31 @@ class Gaussian(PointMatch):
         n_p = theta.size
         central_amplitude = 1
         rw = 2*np.power(wscaling * w0, 2) * np.power(np.tan(theta),2)
-        dr = (wscaling * w0) * np.power(np.sec(theta),2)
+        dr = (wscaling * w0) * np.power(1/np.cos(theta),2)
         if angular_scaling == 'tantheta':
             pass
         elif angular_scaling == 'sintheta':
-            wscaling = 1/np.sin(np.abs(beam_angle_deg/180*np.pi))
+            wscaling = 1/np.sin(np.abs(self.angle))
             rw = 2*np.power(wscaling * w0, 2) * np.power(np.sin(theta), 2)
             dr = (wscaling * w0)*np.abs(np.cos(theta))
         else:
             raise ValueError('Unknown angular_scaling parameter value')
         self.angular_scaling = angular_scaling
-        total_modes = np.power(nmax, 2) + 2*nmax
+        total_modes = np.power(n_max, 2) + 2*n_max
         nn, mm = combined_index(np.arange(1, total_modes+1, 1).T)
         mode_index_vector = []
-        beam_envelope = np.zeros(n_p, c.size)
-        for i in range(1, c.size+1):
+        beam_envelope = np.zeros((n_p, c.size))
+        for i in range(0, c.size):
             radial_mode = initial_mode[i, 0]
             azimuthal_mode = initial_mode[i,1]            
-            norm_paraxial = np.sqrt(2*np.factorial(radial_mode)/(np.pi*np.factorial(radial_mode+np.abs(azimuthal_mode))))
+            norm_paraxial = np.sqrt(2*np.math.factorial(radial_mode)/(np.pi*np.math.factorial(radial_mode+np.abs(azimuthal_mode))))
+            print(radial_mode, azimuthal_mode, norm_paraxial)
+
             L = laguerre(radial_mode, np.abs(azimuthal_mode), rw)
+
+
+
+
             beam_envelope[:,i-1] = norm_paraxial*np.power(rw,abs(azimuthal_mode/2))*L* np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
             mode_input_power = np.sqrt((2*np.pi*np.power(abs(beam_envelope[:, i-1]),2)*np.sqrt(rw/2)*np.abs(dr)).sum())
             aperture_power_normalization = np.sqrt(sum(2*pi*np.abs(beam_envelope[:,i-1])^2*np.sin(theta)))
