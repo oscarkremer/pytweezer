@@ -1,10 +1,12 @@
 import numpy as np
 from .point_match import PointMatch
+from pytweezer.utils import angular_grid, combined_index, paraxial_beam_waist
+from numpy.linalg import norm
 
 class Gaussian(PointMatch):
     def __init__(self, beam_function='lg',
                         mode=np.array([0, 0]),
-                        n_max=None, 
+                        n_max=100, 
                         zero_rejection_level=1e-8,
                         offset=np.array([[0],[0],[0]]),
                         polarization=np.array([1, 1j]),
@@ -14,15 +16,11 @@ class Gaussian(PointMatch):
                         translation_method='default',
                         omega=2*np.pi,
                         index_m=1,
-                        na=0,
-                        angle_deg=0,
+                        na=1.02,
                         angle=0,
                         truncation_angle=np.pi/2,
                         angular_scaling='tantheta'
                         ):
-        pass
-
-'''
         if self.validate_beam_type(beam_function):
             self.beam_function = beam_function
         else:
@@ -36,226 +34,122 @@ class Gaussian(PointMatch):
         else:
             raise ValueError('Translation method inserted \
                 not valid! Allowed values are \`default\` or \`new_beam\`.')
-        self.compute_k_medium(index_n, lambda_0)
+        self.compute_k_medium(index_m, lambda_0)
         self.omega = omega
         self.offset = offset
         self.truncation_angle = self.pi/2
-        axisymmetry = 1
+        axi_symmetry = 1
         radial = 0
         azimuthal = 0
-
         if self.beam_function == 'hg':
-            assert mode.size == 2, 'Mode must be array with two elements'
-            m, n = self.mode[0], self.mode[1]
-            paraxial_order = n+m
-            modeweights,initial_mode,final_mode = paraxial_transformation_matrix(paraxial_order,0,1,0);
-            row = find(final_mode(:,1)==m,1)
+            raise ValeuError('Beam function not implemented yet!')
         elif self.beam_function == 'lg':
-
-            assert(numel(p.Results.mode) == 2, ...
-            'ott:BscPmGauss:wrong_mode_length', ...
-            'mode must be 2 element vector');
-
-            radial_mode = p.Results.mode(1);
-            azimuthal_mode = p.Results.mode(2);
-            assert(radial_mode - floor(radial_mode) == 0 && radial_mode >= 0, ...
-            'ott:BscPmGauss:invalid_radial_mode', ...
-            'Radial mode index must be positive integer');
-            assert(azimuthal_mode - floor(azimuthal_mode) == 0, ...
-            'ott:BscPmGauss:invalid_azimuthal_mode', ...
-            'Azimuthal mode index must be integer');
-
-            paraxial_order=2*radial_mode+abs(azimuthal_mode);
-            modeweights=eye(paraxial_order+1);
-            row=(azimuthal_mode+paraxial_order)/2+1;
-            
-            i2_out= (-paraxial_order:2:paraxial_order).';
-            i1_out=floor((paraxial_order-abs(i2_out))/2);
-            
-            initial_mode=[i1_out,i2_out];
+            assert mode.size == 2, 'Wrong mode length, for LG mode must be array containig 2 elements'
+            radial_mode = self.mode[0]
+            azimuthal_mode = self.mode[1]
+            assert (radial_mode - np.floor(radial_mode)) == 0 and radial_mode >= 0, 'Radial mode must be positive integer, condition not attended'
+            assert (azimuthal_mode - np.floor(azimuthal_mode)) == 0, 'Azimuthal mode index must be integer'
+            paraxial_order = 2*radial_mode + np.abs(azimuthal_mode)
+            mode_weights = np.eye(paraxial_order+1)
+            row = (azimuthal_mode+paraxial_order)/2+1            
+            i2_out = np.array(-paraxial_order, paraxial_order+1, 2).T
+            i1_out = np.floor((paraxial_order-np.abs(i2_out))/2)
+            initial_mode = np.array([i1_out, i2_out])
         elif self.beam_function == 'ig':
-            assert(numel(p.Results.mode) == 4, ...
-            'ott:BscPmGauss:wrong_mode_length', ...
-            'mode must be 4 element vector');
-
-            paraxial_order = p.Results.mode(1);
-            azimuthal_mode = p.Results.mode(2);
-            parity = p.Results.mode(3);
-            elipticity = p.Results.mode(4);
+            raise ValueError('Beam function not implemented yet!')
             
-            [modeweights,initial_mode,final_mode] = ...
-                paraxial_transformation_matrix(paraxial_order,0,[2,elipticity],0);
-            
-            [row]=find(and(final_mode(:,2)==azimuthal_mode, ...
-                final_mode(:,3)==parity),1);
-            
-            if and(paraxial_order>1,isempty(row))
-            ott.warning('external');
-            error('Observe parity convensions!')
-            end
-        keepz=(abs(modeweights(row,:))>0);
-        initial_mode=initial_mode(keepz,:);
-        c=modeweights(row,keepz);
+        keepz = np.where(np.abs(mode_weights[row-1, :]) > 0)
+        initial_mode = initial_mode[keepz, :]
+        c = mode_weights[row,keepz]
 
-        beam_angle_specified = ~isempty(p.Results.angle) ...
-            + ~isempty(p.Results.angle_deg) + ~isempty(p.Results.NA);
+        self.angle = np.asin(na/self.index_m)
+        x_comp = polarization[0]
+        y_comp = polarization[1]
+        offset = offset
 
-        if beam_angle_specified > 1
-            ott.warning('external');
-            error('Too many inputs.  Only specify NA, angle or angle_deg');
-        elseif isempty(p.Results.angle) && isempty(p.Results.angle_deg)
-            if isempty(p.Results.NA)
-                NA = 1.02;
-                index = 1.33;
-            else
-                NA = p.Results.NA;
-            if ~isempty(p.Results.index_medium)
-                index = p.Results.index_medium;
-            else
-                ott.warning('external');
-                error('Need to specify index_medium with NA');
-          
-            beam_angle_deg = asin(NA/index)*180.0/pi;
-        elseif ~isempty(p.Results.angle_deg)
-            beam_angle_deg = p.Results.angle_deg;
-        elseif ~isempty(p.Results.angle)
-            beam_angle_deg = p.Results.angle*180/pi;
-        beam.angle = beam_angle_deg * pi/180;
-
-        xcomponent = p.Results.polarisation(1);
-        ycomponent = p.Results.polarisation(2);
-        offset = p.Results.offset;
-
-        if numel(offset) == 3 && any(abs(offset(1:2))>0)
-        
-        % Only warn if using beams that support matrix translations
-            if strcmpi(p.Results.translation_method, 'Default')
-                ott.warning('external');
-                ott.warning('ott:bsc_pointmatch_farfield:offsets', ...
-                    ['Beam offsets with x and y components cannot be ' ...
-                    'axi-symmetric, beam symmetry is now off, and the ' ...
-                    'calculation will be much slower. It is highly recommended ' ...
-                    'that a combination of rotations and translations are ' ...
-                    'used on BSCs instead.']);
-                    ott.warning('internal');
-        
-            axisymmetry=0;
+        if offset.size == 3 and (np.abs(offset[:2])>0).any():
+            if self.translation_method == 'default':
+                warnings.warn('Beam offsets with x and y components cannot be \
+                    axi-symmetric, beam symmetry is now off, and the \
+                    calculation will be much slower. It is highly recommended \
+                    that a combination of rotations and translations are \
+                    used on BSCs instead.')                
+            axisymmetry=0
       
-        w0 = ott.utils.paraxial_beam_waist(paraxial_order);
-        wscaling=1/tan(abs(beam_angle_deg/180*pi));
-        if isempty(p.Results.Nmax)
-            nmax = 100;
-        else
-            nmax = p.Results.Nmax;
-        ntheta = (nmax + 1);
-        nphi = 2*(nmax + 1);
-        if axisymmetry
-            ntheta = 2*(nmax+1);
-            nphi = 3;
-            if ~strcmp(beam.gtype, 'lg')
-                nphi = paraxial_order+3-rem(paraxial_order,2);
-        if ~isempty(p.Results.offset)
-            offset_lambda = vecnorm(p.Results.offset)*beam.k_medium/(2*pi);
-            ntheta = max(ntheta, 3*ceil(offset_lambda));
-            nphi = max(nphi, 2*3*ceil(offset_lambda));
-        [theta,phi] = ott.utils.angulargrid(ntheta,nphi);
-        np = length(theta);
-        central_amplitude = 1;
-        rw = 2*(wscaling * w0)^2 * tan(theta).^2 ;
-        dr = (wscaling * w0) * (sec(theta)).^2 ;
-      
-      if strcmpi(p.Results.angular_scaling, 'tantheta')
-        % Nothing to do
-      elseif strcmpi(p.Results.angular_scaling, 'sintheta')
+        w0 = paraxial_beam_waist(paraxial_order)
+        wscaling = 1/np.tan(np.abs(beam_angle_deg/180*np.pi))
+        n_theta = (nmax + 1)
+        n_phi = 2*(nmax + 1)
+        if axisymmetry:
+            ntheta = 2*(nmax+1)
+            nphi = 3
+            if self.beam_function == 'lg':
+                nphi = paraxial_order + 3 - np.remainder(paraxial_order,2)
+        if self.offset == np.array([[0], [0], [0]]):
+            offset_lambda = norm(offset)*self.k_medium/(2*np.pi)
+            n_theta = max(n_theta, 3*np.ceil(offset_lambda))
+            n_phi = max(n_phi, 2*3*np.ceil(offset_lambda))
+        theta, phi = angular_grid(n_theta, n_phi)
+        n_p = theta.size
+        central_amplitude = 1
+        rw = 2*np.power(wscaling * w0, 2) * np.power(np.tan(theta),2)
+        dr = (wscaling * w0) * np.power(np.sec(theta),2)
+        if angular_scaling == 'tantheta':
+            pass
+        elif angular_scaling == 'sintheta':
+            wscaling = 1/np.sin(np.abs(beam_angle_deg/180*np.pi))
+            rw = 2*np.power(wscaling * w0, 2) * np.power(np.sin(theta), 2)
+            dr = (wscaling * w0)*np.abs(np.cos(theta))
+        else:
+            raise ValueError('Unknown angular_scaling parameter value')
+        self.angular_scaling = angular_scaling
+        total_modes = np.power(nmax, 2) + 2*nmax
+        nn, mm = combined_index(np.arange(1, total_modes+1, 1).T)
+        mode_index_vector = []
+        beam_envelope = np.zeros(n_p, c.size)
+        for i in range(1, c.size+1):
+            radial_mode = initial_mode[i, 0]
+            azimuthal_mode = initial_mode[i,1]            
+            norm_paraxial = np.sqrt(2*np.factorial(radial_mode)/(np.pi*np.factorial(radial_mode+np.abs(azimuthal_mode))))
+            L = laguerre(radial_mode, np.abs(azimuthal_mode), rw)
+            beam_envelope[:,i-1] = norm_paraxial*np.power(rw,abs(azimuthal_mode/2))*L* np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
+            mode_input_power = np.sqrt((2*np.pi*np.power(abs(beam_envelope[:, i-1]),2)*np.sqrt(rw/2)*np.abs(dr)).sum())
+            aperture_power_normalization = np.sqrt(sum(2*pi*np.abs(beam_envelope[:,i-1])^2*np.sin(theta)))
+            beam_envelope[:,i-1] = c[i-1]*beam_envelope[:, i-1]/aperture_power_normalization*mode_input_power
+            mode_index_vector=[mode_index_vector,
+                find(mm==azimuthal_mode+1-max([azimuthal,radial]) | mm==azimuthal_mode-1+max([azimuthal,radial]))]
 
-        wscaling=1/sin(abs(beam_angle_deg/180*pi));
+        mode_index_vector=unique(mode_index_vector)
 
-        rw = 2*(wscaling * w0)^2 * sin(theta).^2 ;
-        dr = (wscaling * w0) * abs(cos(theta)) ;
-        
-      else
-        error('Unknown angular_scaling parameter value');
-      end
-      
-      beam.angular_scaling = p.Results.angular_scaling;
+        beam_envelope=sum(beam_envelope,2)
+        outbeam = theta < pi-beam.truncation_angle
+        beam_envelope(outbeam) = 0
 
-      % degree and order of all modes
-      total_modes = nmax^2 + 2*nmax;
-      [nn,mm] = ott.utils.combined_index((1:total_modes)');
+        if offset != np.array([[0], [0], [0]]):
+            rhat = rtpv2xyzv( np.ones(size(theta)), zeros(size(theta)),
+                np.zeros(size(theta)), np.ones(size(theta)), theta, phi)
+            [offset,rhat] = match_size(offset.T,rhat)
+            phase_shift = exp( 1j * beam.k_medium * dot(offset,rhat,2))
+            beam_envelope = beam_envelope * phase_shift
+        Ex = xcomponent * beam_envelope * central_amplitude
+        Ey = ycomponent * beam_envelope * central_amplitude
 
-      mode_index_vector=[];
-      beam_envelope = zeros(np,length(c));
-      for ii=1:length(c)
-          radial_mode=initial_mode(ii,1);
-          azimuthal_mode=initial_mode(ii,2);
-          
-          norm_paraxial=sqrt(2*factorial(radial_mode)/(pi*factorial(radial_mode+abs(azimuthal_mode))));
-          L = laguerre(radial_mode,abs(azimuthal_mode),rw);
-          beam_envelope(:,ii) = norm_paraxial.*rw.^abs(azimuthal_mode/2) .* L .* exp(-rw/2 + 1i*azimuthal_mode*phi+1i*pi/2*(radial_mode*2+abs(azimuthal_mode)+1));
-          mode_input_power=sqrt(sum(2*pi*abs(beam_envelope(:,ii)).^2.*sqrt(rw/2).*abs(dr)));
-          aperture_power_normalization=sqrt(sum(2*pi*abs(beam_envelope(:,ii)).^2.*sin(theta)));
-          
-          beam_envelope(:,ii)=c(ii)*beam_envelope(:,ii)/aperture_power_normalization*mode_input_power;
-          
-          mode_index_vector=[mode_index_vector; ...
-              find(mm==azimuthal_mode+1-max([azimuthal,radial]) ...
-              | mm==azimuthal_mode-1+max([azimuthal,radial]))];
-
-      end
-      mode_index_vector=unique(mode_index_vector);
-
-      beam_envelope=sum(beam_envelope,2);
-      outbeam = theta < pi-beam.truncation_angle;
-      beam_envelope(outbeam) = 0;
-
-      if ~isempty(offset)
-        rhat = rtpv2xyzv( ones(size(theta)), zeros(size(theta)), ...
-            zeros(size(theta)), ones(size(theta)), theta, phi );
-        [offset,rhat] = matchsize(offset.',rhat);
-        phase_shift = exp( 1i * beam.k_medium * dot(offset,rhat,2) );
-        beam_envelope = beam_envelope .* phase_shift;
-      end
-      Ex = xcomponent * beam_envelope * central_amplitude;
-      Ey = ycomponent * beam_envelope * central_amplitude;
-
-      if any(azimuthal|radial)
-        Etheta=-radial*xcomponent*beam_envelope * central_amplitude;
-        Ephi=azimuthal*ycomponent*beam_envelope * central_amplitude;
-      else
-        Etheta = - Ex .* cos(phi) - Ey .* sin(phi);
-        Ephi = - Ex .* sin(phi) + Ey .* cos(phi);
-      end
-
-      e_field = [ Etheta(:); Ephi(:) ];
-
-      if axisymmetry
-        nn=nn(mode_index_vector);
-        mm=mm(mode_index_vector);
-
-        removeels=find(abs(mm)>paraxial_order+1);
-        nn(removeels)=[];
-        mm(removeels)=[];
-      end
-
-      % Do the point matching and store the result
-      [beam.a, beam.b] = beam.bsc_farfield(nn, mm, e_field, theta, phi, ...
-        'zero_rejection_level', p.Results.zero_rejection_level);
-
-      % If no Nmax supplied, shrink the beam to the smallest size that
-      % preserves the beam power
-      if isempty(p.Results.Nmax)
-        beam = beam.shrink_Nmax();
-      end
-
-      % Normalize the beam power
-      if ~isempty(p.Results.power)
-        beam.power = p.Results.power;
-      end
-
-      ott.warning('external');
-    end
-
-      #  self.beam = PointMatch(**kwargs)
+        if any(azimuthal|radial):
+            Etheta = -radial*xcomponent*beam_envelope * central_amplitude;
+            Ephi = azimuthal*ycomponent*beam_envelope * central_amplitude;
+        else:
+            Etheta = - Ex * np.cos(phi) - Ey * np.sin(phi)
+            Ephi = - Ex * np.sin(phi) + Ey * np.cos(phi)
+        e_field = np.array([E_theta[:], E_phi[:]])
+        if axisymmetry:
+            nn = nn(mode_index_vector)
+            mm = mm(mode_index_vector)
+            removeels = find(abs(mm)>paraxial_order+1)
+            nn(removeels) = []
+            mm(removeels) = []
+        self.bsc_farfield(nn, mm, e_field, theta, phi,
+        'zero_rejection_level', p.Results.zero_rejection_level)
+        self.power = power
         self.beam_type = 'incident'
         self.beam.basis = 'regular'
 
@@ -285,7 +179,6 @@ class Gaussian(PointMatch):
 
 '''
 
-'''
 
     
     function varargout = translateXyz(beam, varargin)

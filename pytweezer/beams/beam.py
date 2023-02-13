@@ -28,6 +28,7 @@ class Beam:
             raise ValueError('Wavelength and refractive index cannot be negative.')
         else:
             self.k_m = kwargs.get('index_m')*2*np.pi/kwargs.get('lambda_0')
+            self.index_m = index_m
 
 
 '''
