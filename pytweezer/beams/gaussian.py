@@ -25,8 +25,8 @@ class Gaussian(PointMatch):
             self.beam_function = beam_function
         else:
             raise ValueError('Beam type inserted not valid! Allowed values are \`lg\`, \`hg\` or \`ig\`.')
-        self.mode = self.mode
-        self.offset = self.offset
+        self.mode = mode
+        self.offset = offset
         self.polarization = polarization
 
         if self.validate_translation_method(translation_method):
@@ -42,7 +42,7 @@ class Gaussian(PointMatch):
         radial = 0
         azimuthal = 0
         if self.beam_function == 'hg':
-            raise ValeuError('Beam function not implemented yet!')
+            raise ValueError('Beam function not implemented yet!')
         elif self.beam_function == 'lg':
             assert mode.size == 2, 'Wrong mode length, for LG mode must be array containig 2 elements'
             radial_mode = self.mode[0]
@@ -52,9 +52,11 @@ class Gaussian(PointMatch):
             paraxial_order = 2*radial_mode + np.abs(azimuthal_mode)
             mode_weights = np.eye(paraxial_order+1)
             row = (azimuthal_mode+paraxial_order)/2+1            
-            i2_out = np.array(-paraxial_order, paraxial_order+1, 2).T
+            i2_out = np.array(-paraxial_order, parxaxial_order+1, 2).T
             i1_out = np.floor((paraxial_order-np.abs(i2_out))/2)
             initial_mode = np.array([i1_out, i2_out])
+            print(radial_mode, azimuthal_mode, paraxial_order)
+
         elif self.beam_function == 'ig':
             raise ValueError('Beam function not implemented yet!')
             
@@ -74,7 +76,7 @@ class Gaussian(PointMatch):
                     calculation will be much slower. It is highly recommended \
                     that a combination of rotations and translations are \
                     used on BSCs instead.')                
-            axisymmetry=0
+            axisymmetry = 0
       
         w0 = paraxial_beam_waist(paraxial_order)
         wscaling = 1/np.tan(np.abs(beam_angle_deg/180*np.pi))
@@ -121,15 +123,15 @@ class Gaussian(PointMatch):
 
         mode_index_vector=unique(mode_index_vector)
 
-        beam_envelope=sum(beam_envelope,2)
-        outbeam = theta < pi-beam.truncation_angle
-        beam_envelope(outbeam) = 0
+        beam_envelope = beam_envelope.sum(axis=1)
+        outbeam = theta < np.pi - self.truncation_angle
+        beam_envelope[outbeam] = 0
 
         if offset != np.array([[0], [0], [0]]):
             rhat = rtpv2xyzv( np.ones(size(theta)), zeros(size(theta)),
                 np.zeros(size(theta)), np.ones(size(theta)), theta, phi)
             [offset,rhat] = match_size(offset.T,rhat)
-            phase_shift = exp( 1j * beam.k_medium * dot(offset,rhat,2))
+            phase_shift = np.exp( 1j * beam.k_medium * dot(offset,rhat,2))
             beam_envelope = beam_envelope * phase_shift
         Ex = xcomponent * beam_envelope * central_amplitude
         Ey = ycomponent * beam_envelope * central_amplitude
@@ -142,11 +144,11 @@ class Gaussian(PointMatch):
             Ephi = - Ex * np.sin(phi) + Ey * np.cos(phi)
         e_field = np.array([E_theta[:], E_phi[:]])
         if axisymmetry:
-            nn = nn(mode_index_vector)
-            mm = mm(mode_index_vector)
+            nn = nn[mode_index_vector]
+            mm = mm[mode_index_vector]
             removeels = find(abs(mm)>paraxial_order+1)
-            nn(removeels) = []
-            mm(removeels) = []
+            nn[removeels] = []
+            mm[removeels] = []
         self.bsc_farfield(nn, mm, e_field, theta, phi,
         'zero_rejection_level', p.Results.zero_rejection_level)
         self.power = power
@@ -168,11 +170,9 @@ class Gaussian(PointMatch):
                 polarization=self.polarization, truncation_angle=self.truncation_angle,
                 n_max=self.n_max, angle=self.angle)
 
-    @staticmethod
-    def supported_beam_type(self, s):
+    def validate_beam_type(self, s):
         return True if s in ('lg', 'hg', 'ig') else False
 
-    @staticmethod
     def validate_translation_method(self, method):
         return True if method in ('default', 'new_beam') else False
 
