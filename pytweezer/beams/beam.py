@@ -22,12 +22,11 @@ class Beam:
         self.basis = basis
         self.portion = beam_type
 
-    @staticmethod
     def compute_k_medium(self, index_m, lambda_0):
         if index_m < 0 or lambda_0 < 0:
             raise ValueError('Wavelength and refractive index cannot be negative.')
         else:
-            self.k_m = kwargs.get('index_m')*2*np.pi/kwargs.get('lambda_0')
+            self.k_m = index_m*2*np.pi/lambda_0
             self.index_m = index_m
 
 

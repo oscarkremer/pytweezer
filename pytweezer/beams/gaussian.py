@@ -37,10 +37,8 @@ class Gaussian(PointMatch):
         self.compute_k_medium(index_m, lambda_0)
         self.omega = omega
         self.offset = offset
-        self.truncation_angle = self.pi/2
-        axi_symmetry = 1
-        radial = 0
-        azimuthal = 0
+        self.truncation_angle = np.pi/2
+        axi_symmetry, radial, azimuthal = 1, 0, 0
         if self.beam_function == 'hg':
             raise ValueError('Beam function not implemented yet!')
         elif self.beam_function == 'lg':
@@ -52,23 +50,19 @@ class Gaussian(PointMatch):
             paraxial_order = 2*radial_mode + np.abs(azimuthal_mode)
             mode_weights = np.eye(paraxial_order+1)
             row = (azimuthal_mode+paraxial_order)/2+1            
-            i2_out = np.array(-paraxial_order, parxaxial_order+1, 2).T
+            i2_out = np.arange(-paraxial_order, paraxial_order+1, 2).T
             i1_out = np.floor((paraxial_order-np.abs(i2_out))/2)
             initial_mode = np.array([i1_out, i2_out])
-            print(radial_mode, azimuthal_mode, paraxial_order)
-
+            print(mode_weights, row, i2_out, i1_out, initial_mode)
         elif self.beam_function == 'ig':
             raise ValueError('Beam function not implemented yet!')
-            
         keepz = np.where(np.abs(mode_weights[row-1, :]) > 0)
         initial_mode = initial_mode[keepz, :]
         c = mode_weights[row,keepz]
-
         self.angle = np.asin(na/self.index_m)
         x_comp = polarization[0]
         y_comp = polarization[1]
         offset = offset
-
         if offset.size == 3 and (np.abs(offset[:2])>0).any():
             if self.translation_method == 'default':
                 warnings.warn('Beam offsets with x and y components cannot be \
@@ -77,7 +71,6 @@ class Gaussian(PointMatch):
                     that a combination of rotations and translations are \
                     used on BSCs instead.')                
             axisymmetry = 0
-      
         w0 = paraxial_beam_waist(paraxial_order)
         wscaling = 1/np.tan(np.abs(beam_angle_deg/180*np.pi))
         n_theta = (nmax + 1)
