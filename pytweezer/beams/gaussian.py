@@ -98,59 +98,57 @@ class Gaussian(PointMatch):
         self.angular_scaling = angular_scaling
         total_modes = np.power(n_max, 2) + 2*n_max
         nn, mm = combined_index(np.arange(1, total_modes+1, 1).T)
+        nn, mm = nn.astype(int), mm.astype(int)
         mode_index_vector = []
-        beam_envelope = np.zeros((n_p, c.size))
-        for i in range(0, c.size):
-            radial_mode = initial_mode[i, 0]
-            azimuthal_mode = initial_mode[i,1]            
+        beam_envelope = np.zeros((n_p, c.size), dtype=complex)
+        for i in range(1, c.size+1):
+            radial_mode = initial_mode[i-1, 0]
+            azimuthal_mode = initial_mode[i-1,1]            
             norm_paraxial = np.sqrt(2*np.math.factorial(radial_mode)/(np.pi*np.math.factorial(radial_mode+np.abs(azimuthal_mode))))
-            print(radial_mode, azimuthal_mode, norm_paraxial)
-
-            L = laguerre(radial_mode, np.abs(azimuthal_mode), rw)
-
-
-
-
-            beam_envelope[:,i-1] = norm_paraxial*np.power(rw,abs(azimuthal_mode/2))*L* np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
+            L = laguerre(int(radial_mode), int(np.abs(azimuthal_mode)), rw)
+            mult1 = np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
+            elements = norm_paraxial*np.power(rw, np.abs(azimuthal_mode/2))*L*mult1
+            
+            beam_envelope[:,i-1] = norm_paraxial*np.power(rw, np.abs(azimuthal_mode/2))*L*mult1
             mode_input_power = np.sqrt((2*np.pi*np.power(abs(beam_envelope[:, i-1]),2)*np.sqrt(rw/2)*np.abs(dr)).sum())
-            aperture_power_normalization = np.sqrt(sum(2*pi*np.abs(beam_envelope[:,i-1])^2*np.sin(theta)))
+            aperture_power_normalization = np.sqrt(sum(2*np.pi*np.power(np.abs(beam_envelope[:,i-1]), 2)*np.sin(theta)))
             beam_envelope[:,i-1] = c[i-1]*beam_envelope[:, i-1]/aperture_power_normalization*mode_input_power
-            mode_index_vector=[mode_index_vector,
-                find(mm==azimuthal_mode+1-max([azimuthal,radial]) | mm==azimuthal_mode-1+max([azimuthal,radial]))]
-
-        mode_index_vector=unique(mode_index_vector)
-
+            max_aux = max([azimuthal,radial]) 
+            conditional_args = np.where((mm==azimuthal_mode+1-max_aux) | (mm==azimuthal_mode-1+max_aux))
+            if conditional_args[0].size:
+                conditional_args = tuple(conditional_args[0].T)
+                mode_index_vector = list(conditional_args)+mode_index_vector
+        mode_index_vector = set(mode_index_vector)
         beam_envelope = beam_envelope.sum(axis=1)
         outbeam = theta < np.pi - self.truncation_angle
         beam_envelope[outbeam] = 0
-
-        if offset != np.array([[0], [0], [0]]):
+        if not np.array_equal(offset, np.array([[0], [0], [0]])):
             rhat = rtpv2xyzv( np.ones(size(theta)), zeros(size(theta)),
                 np.zeros(size(theta)), np.ones(size(theta)), theta, phi)
-            [offset,rhat] = match_size(offset.T,rhat)
+            offset, rhat = match_size(offset.T,rhat)
             phase_shift = np.exp( 1j * beam.k_medium * dot(offset,rhat,2))
             beam_envelope = beam_envelope * phase_shift
-        Ex = xcomponent * beam_envelope * central_amplitude
-        Ey = ycomponent * beam_envelope * central_amplitude
+        Ex = x_comp * beam_envelope * central_amplitude
+        Ey = y_comp * beam_envelope * central_amplitude
 
-        if any(azimuthal|radial):
-            Etheta = -radial*xcomponent*beam_envelope * central_amplitude;
-            Ephi = azimuthal*ycomponent*beam_envelope * central_amplitude;
+        if azimuthal or radial:
+            E_theta = -radial*x_comp * beam_envelope * central_amplitude;
+            E_phi = azimuthal*y_comp * beam_envelope * central_amplitude;
         else:
-            Etheta = - Ex * np.cos(phi) - Ey * np.sin(phi)
-            Ephi = - Ex * np.sin(phi) + Ey * np.cos(phi)
-        e_field = np.array([E_theta[:], E_phi[:]])
-        if axisymmetry:
-            nn = nn[mode_index_vector]
-            mm = mm[mode_index_vector]
-            removeels = find(abs(mm)>paraxial_order+1)
-            nn[removeels] = []
-            mm[removeels] = []
-        self.bsc_farfield(nn, mm, e_field, theta, phi,
-        'zero_rejection_level', p.Results.zero_rejection_level)
+            E_theta = - Ex * np.cos(phi) - Ey * np.sin(phi)
+            E_phi = - Ex * np.sin(phi) + Ey * np.cos(phi)
+        e_field = np.concatenate([E_theta[:], E_phi[:]])
+        if axi_symmetry:
+            print(mode_index_vector)
+            nn = nn[list(mode_index_vector)]
+            mm = mm[list(mode_index_vector)]
+            mm = mm[abs(mm) <= paraxial_order+1]
+            nn = nn[abs(mm) <= paraxial_order+1]
+            nn = np.sort(nn)
+        self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
         self.power = power
         self.beam_type = 'incident'
-        self.beam.basis = 'regular'
+        self.beam_basis = 'regular'
 
     def translate_z(self, **kwargs):
         if self.translation_method == 'default':        

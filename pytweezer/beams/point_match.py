@@ -7,7 +7,6 @@ class PointMatch(Beam):
     def __init__(self):
         pass
 
-    @staticmethod
     def bsc_far_field(self, nn, mm, e_field, theta, phi, 
         inv_coefficient_matrix=np.array([]), zero_rejection_level=1e-8,
         invert_coefficient_matrix=False):
