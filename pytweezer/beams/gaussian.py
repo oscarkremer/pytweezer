@@ -99,6 +99,8 @@ class Gaussian(PointMatch):
         total_modes = np.power(n_max, 2) + 2*n_max
         nn, mm = combined_index(np.arange(1, total_modes+1, 1).T)
         nn, mm = nn.astype(int), mm.astype(int)
+        nn = nn.reshape((-1, 1)) if len(nn.shape) == 1 else nn
+        mm = mm.reshape((-1, 1)) if len(mm.shape) == 1 else mm
         mode_index_vector = []
         beam_envelope = np.zeros((n_p, c.size), dtype=complex)
         for i in range(1, c.size+1):
@@ -138,6 +140,8 @@ class Gaussian(PointMatch):
             E_theta = - Ex * np.cos(phi) - Ey * np.sin(phi)
             E_phi = - Ex * np.sin(phi) + Ey * np.cos(phi)
         e_field = np.concatenate([E_theta[:], E_phi[:]])
+        if len(e_field.shape) == 1:
+            e_field = e_field.reshape((-1, 1))
         if axi_symmetry:
             nn = nn[list(mode_index_vector)]
             mm = mm[list(mode_index_vector)]

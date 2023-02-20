@@ -46,7 +46,6 @@ def spherical_harmonics(n, m, theta, phi=np.array([])):
     index_m_negative = np.argwhere(m<0)
 
     pnm = np.concatenate([1/((-1)**(-mv[tuple(index_m_negative),:]))*pnm[tuple(index_m_negative),:], pnm[tuple(index_m_positive),:]])
-    print(pnm.shape)
 
     pnm = pnm.reshape((pnm.shape[0], -1))
     expphi = np.exp(1j*mv*phiM)

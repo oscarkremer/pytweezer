@@ -12,33 +12,33 @@ class PointMatch(Beam):
         invert_coefficient_matrix=False):
 
         if not icm.size:
-            coefficient_matrix = np.zeros((e_field.size, 2*nn.size))
-            for n in range(1, max(nn)+1):
+            coefficient_matrix = np.zeros((e_field.size, 2*nn.size), dtype=complex)
+            for n in range(1, nn.max()+1):
                 ci = np.where(nn == n)[0]
-                _, dtY, dpY = spherical_harmonics(n, mm[ci-1], theta, phi)
-                print(dtY.shape)
-                print(dtY)
-                coefficient_matrix[:,ci-1] = np.concatenate([dpY,-dtY]) * np.power(1j,(n+1)/np.sqrt(n*(n+1)))
-                coefficient_matrix[:,ci+nn.size-1] = np.concatenate([dpY,-dtY])*np.power(1j, n/np.sqrt(n*(n+1)))
+                _, dtY, dpY = spherical_harmonics(n, np.sort(mm[ci-1]), theta, phi)
+                coefficient_matrix[:,ci] = np.concatenate([dpY.T, -dtY.T]) * np.power(1j,(n+1))/np.sqrt(n*(n+1))
+                coefficient_matrix[:,ci+nn.size] = np.concatenate([dtY.T, dpY.T])*np.power(1j, n)/np.sqrt(n*(n+1))
             if invert_coefficient_matrix:
                 icm = pinv(coefficient_matrix)
-            if p.Results.invert_coefficient_matrix:
+            if invert_coefficient_matrix:
                 exp_coeffs = np.matmul(icm, e_field)
             else:
-                exp_coeffs = np.matmul(np.linalg.inv(e_field), coefficient_matrix)
+                exp_coeffs, _, _, _ = np.linalg.lstsq(coefficient_matrix, e_field, rcond=None)
         else:
             assert icm.shape[1] == e_field.size, 'Number of cols in coefficient matrix must match length(e_field)'
             exp_coeffs = icm * e_field
-        
+#        print(coefficient_matrix.shape, e_field.shape)
+#        print(exp_coeffs)
         fa = exp_coeffs[:int(exp_coeffs.shape[0]/2),:]
-        fb = expansion_coefficients[int(exp_coeffs.shape[0]/2):,:]
+        fb = exp_coeffs[int(exp_coeffs.shape[0]/2):,:]
         if zero_rejection_level:
             pwr = np.power(np.abs(fa),2)+np.power(np.abs(fb),2)
             non_zero = pwr > zero_rejection_level*pwr.max()
-            nn = nn[non_zero]
-            mm = mm[non_zero]
-            fa = fa[non_zero]
-            fb = fb[non_zero]
+            print(non_zero.shape, nn.shape, mm.shape, pwr.shape, fa.shape, fb.shape)
+            nn = nn[pwr > zero_rejection_level*pwr.max()]
+            mm = mm[pwr > zero_rejection_level*pwr.max()]
+            fa = fa[pwr > zero_rejection_level*pwr.max()]
+            fb = fb[pwr > zero_rejection_level*pwr.max()]
         a, b = self.make_beam_vector(fa, fb, nn, mm) 
         return a, b
 '''  

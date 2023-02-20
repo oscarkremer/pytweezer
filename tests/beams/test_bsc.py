@@ -4,7 +4,7 @@ from pytweezer.beams import Gaussian
 
 def test_sphere_perimeter():
 #    pass
-    beam = Gaussian()
+  #  beam = Gaussian()
 #    beam.power = 1.0
 #    dz = np.pi/2
 
