@@ -1,26 +1,28 @@
 import warnings
 import numpy as np
 from pytweezer.utils import combined_index, translate_z
+from scipy.sparse import csr_matrix
 
 class Beam:
-    def __init__(self, a, b, basis, portion, k_m=2*np.pi, omega=2*np.pi, dz=0):
-        self.dz = dz
-        self.k_medium = k_m
-        self.omega = omega
-
-        assert a.shape==b.shape, 'Mismatch between the shapes of the coefficients'      
-        if isinstance(a, np.ndarray):
-            if len(a.shape) == 1:
-                a = a.reshape((a.shape[0], 1))
-        if isinstance(b, np.ndarray):
-            if len(b.shape) == 1:
-                b = b.reshape((b.shape[0], 1))
-        assert a.shape[0] >= 3, 'Number of multiploe must be at least 3'
-        assert np.sqrt(a.shape[0]+1) == np.floor(np.sqrt(a.shape[0]+1)), 'Number of multipoles must be 3, 8, 15, 24, ...'
-        self.a = a
-        self.b = b
-        self.basis = basis
-        self.portion = beam_type
+    def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
+        pass
+#        self.dz = dz
+#        self.k_medium = k_m
+#        self.omega = omega
+#
+#        assert a.shape==b.shape, 'Mismatch between the shapes of the coefficients'      
+#        if isinstance(a, np.ndarray):
+#            if len(a.shape) == 1:
+#                a = a.reshape((a.shape[0], 1))
+#        if isinstance(b, np.ndarray):
+#            if len(b.shape) == 1:
+#                b = b.reshape((b.shape[0], 1))
+#        assert a.shape[0] >= 3, 'Number of multiploe must be at least 3'
+#        assert np.sqrt(a.shape[0]+1) == np.floor(np.sqrt(a.shape[0]+1)), 'Number of multipoles must be 3, 8, 15, 24, ...'
+#        self.a = a
+#        self.b = b
+#        self.basis = basis
+#        self.beam_type = beam_type
 
     def compute_k_medium(self, index_m, lambda_0):
         if index_m < 0 or lambda_0 < 0:
@@ -28,6 +30,53 @@ class Beam:
         else:
             self.k_m = index_m*2*np.pi/lambda_0
             self.index_m = index_m
+
+    def make_beam_vector(self, a, b, n, m, n_max=None):
+        if not n_max:
+            if not n.size:
+                n_max = 0
+            else:
+                n_max = n.max()
+        total_orders = combined_index(n_max, n_max)
+        ci = combined_index(n, m)
+        n_beams = a.shape[1] if len(a.shape) > 1 else 1
+        ci, c_in_beams = np.meshgrid(ci, np.arange(1, n_beams+1, 1), indexing='ij')
+        ci = ci.reshape((-1))
+        c_in_beams = c_in_beams.reshape((-1))
+        a = csr_matrix((a, (ci-1, c_in_beams-1)), shape=(total_orders, n_beams)).toarray()
+        b = csr_matrix((b, (ci-1, c_in_beams-1)), shape=(total_orders, n_beams)).toarray() 
+        n, m = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
+        n = n.T
+        m = m.T
+        return a, b, n, m
+
+    def translate_beam_z(self, **kwargs):
+        if not kwargs.get('z'):
+            raise ValueError('No z informed for translation method!')
+        else:
+            z = kwargs['z']
+            self.dz = self.dz + np.abs(z)
+            z = z * self.k_m / 2 / np.pi
+            if isinstance(z, np.ndarray):
+                for i in range(1, z.size+1):
+                    A, B = ibeam.translateZ_type_helper(z[i], [p.Results.Nmax, ibeam.Nmax]);
+                    beam = beam.append(ibeam.translate(A, B));
+                    beam.basis = 'regular';
+            else:
+                A, B = ibeam.translateZ_type_helper(z, [p.Results.Nmax, ibeam.Nmax]);
+                beam = beam.append(ibeam.translate(A, B));
+                beam.basis = 'regular';
+        return beam, A, B
+
+    def append(self, other):
+        if self.n_beams == 0:
+            # DANGER: Have to implement this section
+            beam = other
+        else:
+            self.n_max = max(self.n_max, other.n_max)
+            other.n_max = self.n_max
+            self.a = np.concatenate(self.a, other.a)
+            self.b = np.concatenate(self.b, other.b)
 
 
 '''
@@ -162,30 +211,12 @@ class Beam:
 
 
 
-'''
-    @staticmethod
-    def make_beam_vector(self, a, b, n, m, n_max):
-        if not n.shape or not n:
-            warnings.warn('No modes in beam')
-        if not n.shape or not n:
-            n_max = 0
-        else:
-            n_max = n.max()
 
-        total_orders = combined_index(n_max, n_max)
-        ci = combined_index(n, m)
-        nbeams = a.shape[1]
-        ci, c_in_beams = np.meshgrid(ci, np.arange(1, n_beams+1, 1), indexing='ij')
-        a = csr_matrix((ci, c_in_beams, a), shape=(total_orders, n_beams)).toarray()
-        a = csr_matrix((ci, c_in_beams, b), shape=(total_orders, n_beams)).toarray()        
-        n, m = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
-        n = n.T
-        m = m.T
-        return a, b, n, m
+
 
 
     
-    
+'''    
     def translate_z_type_helper(self, z, n_max):
         if self.basis == 'incoming':
             translation_type = 'sbesselh2';
@@ -195,17 +226,9 @@ class Beam:
             translation_type = 'sbesselj'
         A, B = translate_z(n_max, z, function_type=translation_type)
         return A, B
-
-    def append(self, other):
-        if self.n_beams == 0:
-            # DANGER: Have to implement this section
-            beam = other
-        else
-            self.n_max = max(self.n_max, other.n_max)
-            other.n_max = self.n_max
-            self.a = [self.a, other.a]
-            self.b = [self.b, other.b]
 '''
+
+
 
 '''
     def paraxial_far_field(self, varargin)

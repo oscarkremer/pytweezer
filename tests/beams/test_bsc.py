@@ -2,14 +2,14 @@ import pytest
 import numpy as np
 from pytweezer.beams import Gaussian
 
-def test_sphere_perimeter():
+def test_beam_translate():
 #    pass
-  #  beam = Gaussian()
+    beam = Gaussian()
 #    beam.power = 1.0
 #    dz = np.pi/2
 
 #    translated_beam1 = beam.translate_z(z=dz)
-    pass
+#    pass
 #    _, AB = beam.translate_z(dz)
 #  tbeam2 = AB * beam;
 

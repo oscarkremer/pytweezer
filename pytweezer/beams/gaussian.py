@@ -21,6 +21,7 @@ class Gaussian(PointMatch):
                         truncation_angle=np.pi/2,
                         angular_scaling='tantheta'
                         ):
+        super().__init__()
         if self.validate_beam_type(beam_function):
             self.beam_function = beam_function
         else:
@@ -38,6 +39,7 @@ class Gaussian(PointMatch):
         self.omega = omega
         self.offset = offset
         self.truncation_angle = np.pi/2
+        self.dz = 0
         axi_symmetry, radial, azimuthal = 1, 0, 0
         if self.beam_function == 'hg':
             raise ValueError('Beam function not implemented yet!')
@@ -148,7 +150,7 @@ class Gaussian(PointMatch):
             mm = mm[abs(mm) <= paraxial_order+1]
             nn = nn[abs(mm) <= paraxial_order+1]
             nn = np.sort(nn)
-        a, b, _ = self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
+        a, b = self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
         self.a = a
         self.b = b
         self.power = power
@@ -157,7 +159,7 @@ class Gaussian(PointMatch):
 
     def translate_z(self, **kwargs):
         if self.translation_method == 'default':        
-            A, B = self.translate_z_point_match(**kwargs)
+            A, B = self.translate_beam_z(**kwargs)
             return _, A, B
         elif self.translation_method == 'new_beam_offset':
             if not kwargs.get('z'):
