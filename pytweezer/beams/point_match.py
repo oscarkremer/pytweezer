@@ -8,41 +8,40 @@ class PointMatch(Beam):
         pass
 
     def bsc_far_field(self, nn, mm, e_field, theta, phi, 
-        inv_coefficient_matrix=np.array([]), zero_rejection_level=1e-8,
+        icm=np.array([[]]), zero_rejection_level=1e-8,
         invert_coefficient_matrix=False):
-        if inv_coefficient_matrix.size:
-            coefficient_matrix = np.zeros((e_field.size, 2*nn.sizee))
+
+        if not icm.size:
+            coefficient_matrix = np.zeros((e_field.size, 2*nn.size))
             for n in range(1, max(nn)+1):
-                ci = nn[np.where(nn == n)]
-
-                _, dtY, dpY = spherical_harmonics(n, mm[ci], theta, phi)
-
-                coefficient_matrix[:,ci-1] = [dpY,-dtY] * 1j^(n+1)/np.sqrt(n*(n+1))
-                coefficient_matrix[:,ci+nn.size-1] = [dtY,dpY]*1j^(n)/np.sqrt(n*(n+1))
-'''
-#            if nargout == 3 or p.Results.invert_coefficient_matrix:
-##                icm = pinv(coefficient_matrix);
- #           if p.Results.invert_coefficient_matrix:
-#                expansion_coefficients = icm * e_field;
-#            else
-#                expansion_coefficients = coefficient_matrix \ e_field;
-
- #       else
-
-            assert(size(icm, 2) == length(e_field), ...
-                'Number of cols in coefficient matrix must match length(e_field)');
-            expansion_coefficients = icm * e_field;
-        fa = expansion_coefficients(1:end/2,:);
-        fb = expansion_coefficients(1+end/2:end,:);
-        if ~isempty(p.Results.zero_rejection_level)
-            pwr = abs(fa).^2+abs(fb).^2;
-            non_zero = pwr>p.Results.zero_rejection_level*max(pwr);
-            nn=nn(non_zero);
-            mm=mm(non_zero);
-            fa=fa(non_zero);
-            fb=fb(non_zero);
-        [a, b] = ott.Bsc.make_beam_vector(fa, fb, nn, mm);
-    
+                ci = np.where(nn == n)[0]
+                _, dtY, dpY = spherical_harmonics(n, mm[ci-1], theta, phi)
+                print(dtY.shape)
+                print(dtY)
+                coefficient_matrix[:,ci-1] = np.concatenate([dpY,-dtY]) * np.power(1j,(n+1)/np.sqrt(n*(n+1)))
+                coefficient_matrix[:,ci+nn.size-1] = np.concatenate([dpY,-dtY])*np.power(1j, n/np.sqrt(n*(n+1)))
+            if invert_coefficient_matrix:
+                icm = pinv(coefficient_matrix)
+            if p.Results.invert_coefficient_matrix:
+                exp_coeffs = np.matmul(icm, e_field)
+            else:
+                exp_coeffs = np.matmul(np.linalg.inv(e_field), coefficient_matrix)
+        else:
+            assert icm.shape[1] == e_field.size, 'Number of cols in coefficient matrix must match length(e_field)'
+            exp_coeffs = icm * e_field
+        
+        fa = exp_coeffs[:int(exp_coeffs.shape[0]/2),:]
+        fb = expansion_coefficients[int(exp_coeffs.shape[0]/2):,:]
+        if zero_rejection_level:
+            pwr = np.power(np.abs(fa),2)+np.power(np.abs(fb),2)
+            non_zero = pwr > zero_rejection_level*pwr.max()
+            nn = nn[non_zero]
+            mm = mm[non_zero]
+            fa = fa[non_zero]
+            fb = fb[non_zero]
+        a, b = self.make_beam_vector(fa, fb, nn, mm) 
+        return a, b
+'''  
 #s    def bsc_focalplane(self, nn, mm, e_field, kr, theta, phi, varargin):
            % point match beam coefficients around focal plane
         %

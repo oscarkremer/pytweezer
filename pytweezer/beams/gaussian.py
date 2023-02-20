@@ -139,13 +139,14 @@ class Gaussian(PointMatch):
             E_phi = - Ex * np.sin(phi) + Ey * np.cos(phi)
         e_field = np.concatenate([E_theta[:], E_phi[:]])
         if axi_symmetry:
-            print(mode_index_vector)
             nn = nn[list(mode_index_vector)]
             mm = mm[list(mode_index_vector)]
             mm = mm[abs(mm) <= paraxial_order+1]
             nn = nn[abs(mm) <= paraxial_order+1]
             nn = np.sort(nn)
-        self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
+        a, b, _ = self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
+        self.a = a
+        self.b = b
         self.power = power
         self.beam_type = 'incident'
         self.beam_basis = 'regular'
