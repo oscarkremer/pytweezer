@@ -1,5 +1,6 @@
 import numpy as np
 from .point_match import PointMatch
+from .translation import translate_z
 from pytweezer.utils import angular_grid, combined_index, laguerre, paraxial_beam_waist
 from numpy.linalg import norm
 
@@ -159,7 +160,7 @@ class Gaussian(PointMatch):
 
     def translate_z(self, **kwargs):
         if self.translation_method == 'default':        
-            A, B = self.translate_beam_z(**kwargs)
+            A, B = translate_z(**kwargs)
             return _, A, B
         elif self.translation_method == 'new_beam_offset':
             if not kwargs.get('z'):

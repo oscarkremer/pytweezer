@@ -50,23 +50,17 @@ class Beam:
         m = m.T
         return a, b, n, m
 
-    def translate_beam_z(self, **kwargs):
-        if not kwargs.get('z'):
-            raise ValueError('No z informed for translation method!')
-        else:
-            z = kwargs['z']
-            self.dz = self.dz + np.abs(z)
-            z = z * self.k_m / 2 / np.pi
-            if isinstance(z, np.ndarray):
-                for i in range(1, z.size+1):
-                    A, B = ibeam.translateZ_type_helper(z[i], [p.Results.Nmax, ibeam.Nmax]);
-                    beam = beam.append(ibeam.translate(A, B));
-                    beam.basis = 'regular';
-            else:
-                A, B = ibeam.translateZ_type_helper(z, [p.Results.Nmax, ibeam.Nmax]);
-                beam = beam.append(ibeam.translate(A, B));
-                beam.basis = 'regular';
-        return beam, A, B
+
+    def translate_z_type_helper(self, z, n_max):
+        if self.basis == 'incoming':
+            translation_type = 'sbesselh2';
+        elif self.basis == 'outgoing':
+            translation_type = 'sbesselh1';
+        elif self.basis == 'regular':
+            translation_type = 'sbesselj'
+        A, B = translate_z(n_max, z, function_type=translation_type)
+        return A, B
+
 
     def append(self, other):
         if self.n_beams == 0:
@@ -78,6 +72,17 @@ class Beam:
             self.a = np.concatenate(self.a, other.a)
             self.b = np.concatenate(self.b, other.b)
 
+
+    # THIS IS AN ADDITIONAL GATE-KEEPING METHOD TO ENSURE 
+    # THAT EVEN WHEN PROPERTIES ARE DELETED, CLONED OBJECTS
+    # STILL GETS DEFAULT VALUES (NONE, IN THIS CASE)
+    def normalizeArgs(self):
+        if not hasattr(self, "a"):
+            self.a      = None
+        if not hasattr(self, "b"):
+            self.b      = None
+        if not hasattr(self, "kwargs"):
+            self.kwargs = {}
 
 '''
  function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)
@@ -208,26 +213,6 @@ class Beam:
     end
   end
 '''
-
-
-
-
-
-
-
-    
-'''    
-    def translate_z_type_helper(self, z, n_max):
-        if self.basis == 'incoming':
-            translation_type = 'sbesselh2';
-        elif self.basis == 'outgoing':
-            translation_type = 'sbesselh1';
-        elif self.basis == 'regular':
-            translation_type = 'sbesselj'
-        A, B = translate_z(n_max, z, function_type=translation_type)
-        return A, B
-'''
-
 
 
 '''
