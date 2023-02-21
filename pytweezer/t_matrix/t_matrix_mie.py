@@ -4,17 +4,12 @@ import ott.utils.sbesselh1
 from pytweezer.utils import combined_index, sbesselj, sbesselh
 
 class TMatrixMie(TMatrix):
-    def __init__(self):
-
-
-
-
-'''
-        p = ott.TmatrixMie.input_parser(varargin{:});
-      tmatrix.radius = radiu
+    def __init__(self, radius, **kwargs):
+        parameters = self.input_parser(**kwargs)
+        self.radius = shape.__radius__
       [tmatrix.k_medium, tmatrix.k_particle] = ...
           tmatrix.parser_wavenumber(p, 2.0*pi);
-      tmatrix.mu_relative = p.Results.mu_relative;
+        self.mu_relative = parameters['mu_relative']
       if numel(tmatrix.radius) ~= numel(tmatrix.k_particle)
         error('radius and k_particle must be the same length');
       end
@@ -51,9 +46,36 @@ class TMatrixMie(TMatrix):
     end
   end
 end
-        
-        pass
 
+    def input_parser(**kwargs):
+        if not kwargs.get('n_max'):
+            kwargs['n_max'] = None
+        if not kwargs.get('lambda_0'):
+            kwargs['lambda_0'] = None
+        if not kwargs.get('internal'):
+            kwargs['internal'] = False
+        if not kwargs.get('shrink'):
+            kwargs['shrink'] = True
+        if not kwargs.get('index_r'):
+            kwargs['index_r'] = None
+        if not kwargs.get('mu_relative'):
+            kwargs['mu_relative'] = 1.0
+
+        if not kwargs.get('k_medium'):
+            kwargs['k_medium'] = None
+        if not kwargs.get('lambda_m'):
+            kwargs['lambda_m'] = None
+        if not kwargs.get('k_medium'):
+            kwargs['k_medium'] = None
+        if not kwargs.get('k_particle'):
+            kwargs['k_particle'] = None
+        if not kwargs.get('lambda_p'):
+            kwargs['lambda_p'] = None
+        if not kwargs.get('index_p'):
+            kwargs['index_p'] = None
+        return kwargs
+
+'''
     def tmatrix_mie(self, tmatrix, Nmax, internal):
         n = [1:Nmax]
         m = tmatrix.k_particle/tmatrix.k_medium
