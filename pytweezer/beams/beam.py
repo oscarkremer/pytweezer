@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 from pytweezer.utils import combined_index, translate_z
 from scipy.sparse import csr_matrix
+from copy import copy
 
 class Beam:
     def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
@@ -36,8 +37,8 @@ class Beam:
             if not n.size:
                 self.n_max = 0
             else:
-                print(n)
                 self.n_max = n.max()
+            n_max = self.n_max
         total_orders = combined_index(n_max, n_max)
         ci = combined_index(n, m)
         n_beams = a.shape[1] if len(a.shape) > 1 else 1
@@ -62,21 +63,23 @@ class Beam:
         A, B = translate_z(n_max, z, function_type=translation_type)
         return A, B
 
-    #def shrik_nmax(self):
-
-     # % SHRINK_NMAX reduces the size of the beam while preserving power
-
-      #p = inputParser;
-      #p.addParameter('tolerance', 1.0e-6);
-      #p.parse(varargin{:});
-
-#      amagA = full(sum(sum(abs(beam.a).^2)))
-#      bmagA = full(sum(sum(abs(beam.b).^2)))
-
-#      for ii = 1:beam.Nmax
-
- #       total_orders = ott.utils.combined_index(ii, ii);
- #       nbeam = beam;
+    def shrink_nmax(self, tolerance=1e-6):
+        amagA = np.power(np.abs(self.a), 2).sum()
+        bmagA = np.power(np.abs(self.b), 2).sum()
+        for i in range(1, self.n_max+1):
+            total_orders = combined_index(i, i)
+            new_beam = copy(self)
+            new_beam.a = new_beam.a[:total_orders+1]
+            new_beam.b = new_beam.b[:total_orders+1]
+            amagB = np.power(np.abs(new_beam.a), 2).sum()
+            bmagB = np.power(np.abs(new_beam.b), 2).sum()
+            a_error = abs( amagA - amagB )/amagA
+            b_error = abs( bmagA - bmagB )/bmagA
+            if a_error < tolerance and b_error < tolerance:
+                self.a = new_beam.a
+                self.b = new_beam.b 
+                self.n_max = i
+                break
  #       nbeam.a = nbeam.a(1:total_orders);
  #       nbeam.b = nbeam.b(1:total_orders);
 

@@ -7,6 +7,7 @@ from numpy import matlib as matlib
 from copy import copy
 
 beam = Gaussian()
+
 #dz=np.pi/2
 #beam_2, A, B = translate_z(copy(beam), z=dz)
 #print(beam_2.a)
