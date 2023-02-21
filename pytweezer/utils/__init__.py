@@ -25,6 +25,7 @@ __all__ = [
     'combined_index',
     'laguerre',
     'legendre_row',
+    'ka_nmax',
     'match_size',
     'paraxial_beam_waist',
     'paraxial_transformation_matrix',

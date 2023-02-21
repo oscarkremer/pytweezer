@@ -48,13 +48,16 @@ class TMatrix:
     end
     '''
 
+    def __init__(self):
+        pass
+
     def default_method(self, shape, parameters=np.array([]),     
         method_tol=None,
         k_medium=None,
-        wavelength_medium=None,
-        index_medium=None,
-        wavelength0=None
+        index_m=None,
+        lambda_0=None
         ):
+        
         '''      % Determine the appropriate method for a particular shape
         % Returns one of 'mie', smarties', 'dda', 'ebcm', or 'pm'.
         %
@@ -73,120 +76,79 @@ class TMatrix:
         %   'cube'            Cube [ width ]
         %   'axisym'          Axis-symetric particle [ rho(:) z(:) ]
         '''
-        k_medium = self.parser_k_medium(p, 2.0*np.pi)    
+        self.k_medium = self.parser_k_medium(k_medium, , 2.0*np.pi)    
         if isinstance(shape, Sphere):
             #TODO insert info about isSphere for ellipsoid and superellipsoid
-            method = 'mie'
+            return 'mie'
         elif isinstance(shape, Ellipsoid): 
             # TODO: Insert condition for isEllipsoid for SuperEllipsoid
-            method = 'smarties'
+            return 'smarties'
         elif isinstance(shape, SuperEllipsoid):
-            method = 'pm'
+            return 'pm'
         elif isinstance(shape, Cube) or isinstance(shape, RectangularPrism):
-            method = 'pm'
-        elif isinstance(shape, Cylinder) or isinstance(shape, AxiSymLerp)
-            if isinstance(shape, Cylinder)
-                parameters = np.array([ shape.radius, shape.height ])
-            elif isinstance(shape, 'ott.shapes.AxisymLerp')
-                parameters = [ max(shape.rho), max(shape.z) - min(shape.z) ];
-        
-            method = self.cylinder_preferred_method(...
-                parameters, k_medium, p.Results.method_tol);
+            return 'pm'
+        elif isinstance(shape, Cylinder) or isinstance(shape, AxiSymLerp):
+            if isinstance(shape, Cylinder):
+                parameters = np.array([ shape.radius, shape.height])
+            elif isinstance(shape, AxiSymLerp):
+                parameters = np.array([shape.rho.max(),shape.z.max() - shape.z.min()])
+            return self.cylinder_preferred_method(parameters, k_medium, p.Results.method_tol)
             if method == 'other':
-                method = 'dda'
-        else
-            raise ValueError('ott:Tmatrix:simple:no_shape', 'Unsupported particle shape')
+                return 'dda'
+        else:
+            raise ValueError('ott:Tmatrix:simple:no_shape Unsupported particle shape')
         
-    def simple(self, shape, varargin):
-      % Constructs a T-matrix for different simple particle shapes.
-      % This method creates an instance of one of the other T-matrix
-      % classes and is here only as a helper method.
-      %
-      % Usage
-      %   SIMPLE(shape) constructs a new simple T-matrix for the given
-      %   :class:`+ott.+shapes.Shape` object.
-      %
-      %   SIMPLE(name, parameters) constructs a new T-matrix for the
-      %   shape described by the name and parameters.
-      %
-      % Supported shape names [parameters]
-      %   - 'sphere'       -- Spherical (or layered sphere) [ radius ]
-      %   - 'cylinder'     -- z-axis aligned cylinder [ radius height ]
-      %   - 'ellipsoid'    -- Ellipsoid [ a b c]
-      %   - 'superellipsoid' -- Superellipsoid [ a b c e n ]
-      %   - 'cone-tipped-cylinder'  --  [ radius height cone_height ]
-      %   - 'cube'         -- Cube [ width ]
-      %   - 'axisym'       -- Axis-symetric particle [ rho(:) z(:) ]
-      %
-      % Optional named arguments
-      %   - method (enum) -- Allows you to choose the preferred method
-      %     to use for T-matrix calculation.  Supported methods are
-      %     'mie', smarties', 'dda', 'ebcm', and 'pm'.
-      %     Default: `''`.
-      %
-      %   - method_tol (numeric) -- Specifies the error tolerances,
-      %     a number between (0, 1] to use for method selection.
-      %     Smaller values correspond to more accurate methods.
-      %     Default: `[]`.
-      %
-      % Example
-      %   The following example creates a T-matrix for a cube with side
-      %   length of 1 micron using a guess at the best available method.
-      %   Illumination wavelength is 1064 nm, relative index 1.5/1.33::
-      %
-      %     tmatrix = ott.Tmatrix.simple('cube', 1.0e-6, ...
-      %       'wavelength0', 1064e-9, ...
-      %       'index_medium', 1.33, 'index_particle', 1.5);
+    def parser_k_medium(self, k_medium=None, index_m=None, lambda_0=None, default=2*np.pi):
+        if k_medium:
+            return k_medium
+        elif index_m:
+            if not lambda_0:            
+                raise ValueError('wavelength0 must be specified to use index_medium')
+            return index_m*2.0*np.pi/lambda_0
+        else:
+            return default
+        
+    def simple(self, shape, parameters=np.array([]), method=None, method_tol=None):
+        p = inputParser
+        p.KeepUnmatched = true
+        p.addOptional('parameters', [])
+        p.addParameter('method', '')
+        p.addParameter('method_tol', [])
+        p.parse(varargin{:});
+        unmatched = ott.utils.unmatchedArgs(p);
+        
+        % Parse remaining inputs for k_medium
+        pk = inputParser;
+        pk.KeepUnmatched = true;
+        pk.addParameter('k_medium', []);
+        pk.addParameter('wavelength_medium', []);
+        pk.addParameter('index_medium', []);
+        pk.addParameter('wavelength0', []);
+        pk.parse(unmatched{:});
+        k_medium = self.parser_k_medium(pk, 2.0*np.pi)
 
-      % Parse inputs for "simple"
-      p = inputParser;
-      p.KeepUnmatched = true;
-      p.addOptional('parameters', []);
-      p.addParameter('method', '');
-      p.addParameter('method_tol', []);
-      p.parse(varargin{:});
-      unmatched = ott.utils.unmatchedArgs(p);
-      
-      % Parse remaining inputs for k_medium
-      pk = inputParser;
-      pk.KeepUnmatched = true;
-      pk.addParameter('k_medium', []);
-      pk.addParameter('wavelength_medium', []);
-      pk.addParameter('index_medium', []);
-      pk.addParameter('wavelength0', []);
-      pk.parse(unmatched{:});
-
-      % Parse k_medium
-      k_medium = ott.Tmatrix.parser_k_medium(pk, 2.0*pi);
-
-      % Get a shape object from the inputs
-      if ischar(shape) && ~isempty(p.Results.parameters)
-        shape = ott.shapes.Shape.simple(shape, p.Results.parameters);
-      elseif ~isa(shape, 'ott.shapes.Shape') || ~isempty(p.Results.parameters)
-        error('Must input either Shape object or string and parameters');
-      end
-
-      % Call the appropriate class to do the work
-      method = p.Results.method;
-      if isempty(method)
-        method = ott.Tmatrix.defaultMethod(shape, ...
-          'method_tol', p.Results.method_tol, ...
-          'k_medium', k_medium);
-      end
-      switch method
-        case 'mie'
-          tmatrix = ott.TmatrixMie.simple(shape, unmatched{:});
-        case 'smarties'
-          tmatrix = ott.TmatrixSmarties.simple(shape, unmatched{:});
-        case 'pm'
-          tmatrix = ott.TmatrixPm.simple(shape, unmatched{:});
-        case 'dda'
-          tmatrix = ott.TmatrixDda.simple(shape, unmatched{:});
-        case 'ebcm'
-          tmatrix = ott.TmatrixEbcm.simple(shape, unmatched{:});
-        otherwise
-          error('Unsupported method specified');
-
+        if ischar(shape) and ~isempty(p.Results.parameters):
+            shape = ott.shapes.Shape.simple(shape, p.Results.parameters);
+        elif ~isa(shape, 'ott.shapes.Shape') || ~isempty(p.Results.parameters)
+           raise TypeError('Must input either Shape object or string and parameters');
+        
+        method = p.Results.method;
+        if isempty(method)
+            method = ott.Tmatrix.defaultMethod(shape, ...
+                'method_tol', p.Results.method_tol, ...
+                'k_medium', k_medium);
+        if method=='mie':
+            tmatrix = ott.TmatrixMie.simple(shape, unmatched{:});
+        elif method == 'smarties':
+            tmatrix = ott.TmatrixSmarties.simple(shape, unmatched{:});
+        elif method == 'pm':
+            tmatrix = TmatrixPm.simple(shape, unmatched{:});
+        elif method == 'dda':
+            tmatrix = ott.TmatrixDda.simple(shape, unmatched{:});
+        elif method == 'ebcm':
+            tmatrix = ott.TmatrixEbcm.simple(shape, unmatched{:});
+        else:
+            raise ValueError('Unsupported method specified')
         return tmatrix
 
     def cylinder_preferred_method(self, parameters, k, tolerance=0.01):
@@ -252,24 +214,7 @@ class TMatrix:
             raise ValueError('Unable to determine particle wavenumber from inputs');
         return km, kp
 
-    function k_medium = parser_k_medium(p, default)
-      %PARSER_K_MEDIUM helper to get k_medium from a parser object
-
-      if ~isempty(p.Results.k_medium)
-        k_medium = p.Results.k_medium;
-      elseif ~isempty(p.Results.wavelength_medium)
-        k_medium = 2.0*pi/p.Results.wavelength_medium;
-      elseif ~isempty(p.Results.index_medium)
-        if isempty(p.Results.wavelength0)
-          error('wavelength0 must be specified to use index_medium');
-        end
-        k_medium = p.Results.index_medium*2.0*pi/p.Results.wavelength0;
-      elseif nargin == 2
-        k_medium = default;
-      else
-        error('Unable to determine k_medium from inputs');
-      end
-    end
+   
 
     function k_particle = parser_k_particle(p, default)
       %PARSER_K_PARTICLE helper to get k_particle from a parser object
@@ -292,36 +237,8 @@ class TMatrix:
     end
   end
 
- methods (Abstract)
- end
-
  methods
-  function tmatrix = Tmatrix(data, type)
-    % Construct a new T-matrix object.
-    %
-    % Usage
-    %   TMATRIX() leaves the data uninitialised.
-    %
-    %   TMATRIX(data, type) initializes the data with the matrix data.
-    %
-    % Parameters
-    %   - data (numeric) -- The T-matrix data.  Typically a sparse or
-    %     full matrix.
-    %   - type (enum) -- Type of T-matrix.  Must be 'internal',
-    %     'scattered' or 'total'.
-    %
-    % Example
-    %   The following example creates an identity T-matrix which
-    %   represents a particle which doesn't scatter light::
-    %
-    %     data = eye(16);
-    %     tmatrix = ott.Tmatrix(data, 'total');
 
-    if nargin >= 1
-      tmatrix.data = data;
-      tmatrix.type = type;
-    end
-  end
   
     function nmax = get.Nmax(tmatrix)
       %get.Nmax calculate Nmax from the current T-matrix data
