@@ -34,9 +34,9 @@ class Beam:
     def make_beam_vector(self, a, b, n, m, n_max=None):
         if not n_max:
             if not n.size:
-                n_max = 0
+                self.n_max = 0
             else:
-                n_max = n.max()
+                self.n_max = n.max()
         total_orders = combined_index(n_max, n_max)
         ci = combined_index(n, m)
         n_beams = a.shape[1] if len(a.shape) > 1 else 1
@@ -63,26 +63,62 @@ class Beam:
 
 
     def append(self, other):
-        if self.n_beams == 0:
+        if self.n_beams == 1:
             # DANGER: Have to implement this section
-            beam = other
+            self.a = other.a
+            self.b = other.b
         else:
             self.n_max = max(self.n_max, other.n_max)
             other.n_max = self.n_max
-            self.a = np.concatenate(self.a, other.a)
-            self.b = np.concatenate(self.b, other.b)
+            self.a = np.concatenate([self.a, other.a])
+            self.b = np.concatenate([self.b, other.b])
 
+    def __mul__(self, other):
+        print('here')
+        if isinstance(other, (int, float)):
+            self.a = other*self.a
+            self.b = other*self.b
+            return self
+        elif isinstance(other, np.ndarray):
+            if other.shape[0] == 2*self.a.shape[0]:
+                print(self.a.shape)
+                print(self.b.shape)
+                ab = np.matmul(other, np.concatenate([self.a, self.b]))
+                self.a = ab[:int(ab.shape[0]/2),:]
+                self.b = ab[int(ab.shape[0]/2):,:]
+                return self
+        elif isinstance(other, complex):
+            if hasattr(other, '__iter__'):
+                if other.shape[0] == 2*self.a.shape[0]:
+                    print(self.a.shape)
+                    print(self.b.shape)
+                    ab = other*np.concatenate([self.a, self.b])
+                    return self
+        else:
+            #raise #TypeError('The multiplication operation is not possible for the type of variable used!')
+            return NotImplemented
 
-    # THIS IS AN ADDITIONAL GATE-KEEPING METHOD TO ENSURE 
-    # THAT EVEN WHEN PROPERTIES ARE DELETED, CLONED OBJECTS
-    # STILL GETS DEFAULT VALUES (NONE, IN THIS CASE)
-    def normalizeArgs(self):
-        if not hasattr(self, "a"):
-            self.a      = None
-        if not hasattr(self, "b"):
-            self.b      = None
-        if not hasattr(self, "kwargs"):
-            self.kwargs = {}
+    def __rmul__(self, other):
+        print('here', other)
+        if isinstance(other, (int, float)):
+            self.a = other*self.a
+            self.b = other*self.b
+        elif isinstance(other, np.ndarray):
+            if other.shape[0] == 2*self.a.shape[0]:
+                ab = np.matmul(other, np.concatenate([self.a, self.b]))
+                self.a = ab[:int(ab.shape[0]/2),:]
+                self.b = ab[int(ab.shape[0]/2):,:]
+                return self
+        elif isinstance(other, complex):
+            if hasattr(other, '__iter__'):
+                if other.shape[0] == 2*self.a.shape[0]:
+                    ab = np.matmul(other, np.concatenate([self.a, self.b]))
+                    self.a = ab[:int(ab.shape[0]/2),:]
+                    self.b = ab[int(ab.shape[0]/2):,:]
+                    return self
+        else:
+            #raise #TypeError('The multiplication operation is not possible for the type of variable used!')
+            return NotImplemented
 
 '''
  function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)
@@ -1442,23 +1478,6 @@ class Beam:
       end
     end
 
-    function beam = mtimes(a,b)
-      if isa(a, 'ott.Bsc')
-        beam = a;
-        beam.a = beam.a * b;
-        beam.b = beam.b * b;
-      else
-        beam = b;
-        if size(a, 2) == 2*size(beam.a, 1)
-          ab = a * [beam.a; beam.b];
-          beam.a = ab(1:size(ab, 1)/2, :);
-          beam.b = ab(1+size(ab, 1)/2:end, :);
-        else
-          beam.a = a * beam.a;
-          beam.b = a * beam.b;
-        end
-      end
-    end
 
     function beam = plus(beam1, beam2)
       %PLUS add two beams together

@@ -40,23 +40,21 @@ def spherical_harmonics(n, m, theta, phi=np.array([])):
     pnm = legendre_row(n, theta)
 
     pnm = pnm[abs(m), :]
-    
     phiM, mv = np.meshgrid(phi, m)
-    index_m_positive = np.argwhere(m>=0)
-    index_m_negative = np.argwhere(m<0)
-
-    pnm = np.concatenate([1/((-1)**(-mv[tuple(index_m_negative),:]))*pnm[tuple(index_m_negative),:], pnm[tuple(index_m_positive),:]])
-
+    index_m_positive = np.where(m>=0)
+    index_m_negative = np.where(m<0)
+    negative_pnm = ((-1)**(-mv[m<0,:]))*pnm[m<0,:]
+    pnm = np.concatenate([((-1)**(-mv[m<0,:]))*pnm[m<0,:], pnm[m>=0,:]])
     pnm = pnm.reshape((pnm.shape[0], -1))
     expphi = np.exp(1j*mv*phiM)
     Y = pnm*expphi
+#    print(Y.min(), Y.max(), Y.mean())
     expplus = np.exp(1j*phiM)
     expminus = np.exp(-1j*phiM)
 
     ymplus = np.concatenate([Y[1:,:], np.zeros((1,theta.shape[0]))])
     ymminus = np.concatenate([np.zeros((1,theta.shape[0])), Y[:-1,:]])
     Ytheta = np.sqrt((n-mv+1)*(n+mv))/2*expplus*ymminus - np.sqrt((n-mv)*(n+mv+1))/2*expminus*ymplus
-
     Y2 = _spherical_harmonics(n+1,theta,phi)
     ymplus = Y2[2:, :]
     ymminus = Y2[:-2,:]
@@ -104,13 +102,17 @@ def _spherical_harmonics(n, m, theta, phi=None):
     theta, phi = match_size(theta, phi)
     input_length = theta.shape[0]
     pnm = legendre_row(n, theta)
+
     pnm = pnm[abs(m), :] 
     phiM, mv = np.meshgrid(phi, m)
     index_m_positive = np.argwhere(m>=0)
     index_m_negative = np.argwhere(m<0)
-    pnm = np.concatenate([1/((-1)**(-mv[tuple(index_m_negative),:]))*pnm[tuple(index_m_negative),:], pnm[tuple(index_m_positive),:]])
+
+    pnm = np.concatenate([(-1)**(-mv[m<0,:])*pnm[m<0,:], pnm[m>=0,:]])
     
     pnm = pnm.reshape((pnm.shape[0], -1))
     expphi = np.exp(1j*mv*phiM)
+
     Y = pnm*expphi
+   # print(Y.min(), Y.max(), Y.mean())
     return Y

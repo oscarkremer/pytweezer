@@ -1,12 +1,23 @@
 import pytest
 import numpy as np
 from pytweezer.beams import Gaussian
+from pytweezer.beams.translation import translate_z, translate
+from copy import copy
 
-def test_beam_translate():
-#    pass
-    beam = Gaussian()
-#    beam.power = 1.0
-#    dz = np.pi/2
+def test_beam_translate_z():
+    beam = Gaussian()    
+    beam.power = 1.0
+    dz = np.pi/2
+    decimal = 6
+    beam_2, A, B = translate_z(copy(beam), z=dz)
+    AB = np.block([[A, B], [B, A]])
+    beam_3 = copy(beam)*AB
+    beam_4 = translate(beam, A, B)
+    np.testing.assert_array_almost_equal(beam_2.a, beam_3.a, decimal=decimal, err_msg='Waist failed test for equality')
+    np.testing.assert_array_almost_equal(beam_2.a, beam_4.a, decimal=decimal, err_msg='Waist failed test for equality')
+    np.testing.assert_array_almost_equal(beam_2.b, beam_3.b, decimal=decimal, err_msg='Waist failed test for equality')
+    np.testing.assert_array_almost_equal(beam_2.b, beam_4.b, decimal=decimal, err_msg='Waist failed test for equality')
+
 
 #    translated_beam1 = beam.translate_z(z=dz)
 #    pass

@@ -30,7 +30,7 @@ class Gaussian(PointMatch):
         self.mode = mode
         self.offset = offset
         self.polarization = polarization
-
+        self.n_max = n_max
         if self.validate_translation_method(translation_method):
             self.translation_method = translation_method
         else:
@@ -58,7 +58,8 @@ class Gaussian(PointMatch):
             initial_mode = np.array([i1_out, i2_out]).T
         elif self.beam_function == 'ig':
             raise ValueError('Beam function not implemented yet!')
-        keepz = np.argwhere(np.abs(mode_weights[int(row-1),:]) > 0)
+        
+        keepz = np.where(np.abs(mode_weights[int(row-1),:]) > 0)
         initial_mode = initial_mode[keepz, :][0]
         c = mode_weights[int(row-1), keepz]
         self.angle = np.arcsin(na/self.index_m)
@@ -112,8 +113,6 @@ class Gaussian(PointMatch):
             norm_paraxial = np.sqrt(2*np.math.factorial(radial_mode)/(np.pi*np.math.factorial(radial_mode+np.abs(azimuthal_mode))))
             L = laguerre(int(radial_mode), int(np.abs(azimuthal_mode)), rw)
             mult1 = np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
-            elements = norm_paraxial*np.power(rw, np.abs(azimuthal_mode/2))*L*mult1
-            
             beam_envelope[:,i-1] = norm_paraxial*np.power(rw, np.abs(azimuthal_mode/2))*L*mult1
             mode_input_power = np.sqrt((2*np.pi*np.power(abs(beam_envelope[:, i-1]),2)*np.sqrt(rw/2)*np.abs(dr)).sum())
             aperture_power_normalization = np.sqrt(sum(2*np.pi*np.power(np.abs(beam_envelope[:,i-1]), 2)*np.sin(theta)))
@@ -123,7 +122,7 @@ class Gaussian(PointMatch):
             if conditional_args[0].size:
                 conditional_args = tuple(conditional_args[0].T)
                 mode_index_vector = list(conditional_args)+mode_index_vector
-        mode_index_vector = set(mode_index_vector)
+        mode_index_vector = sorted(set(mode_index_vector))
         beam_envelope = beam_envelope.sum(axis=1)
         outbeam = theta < np.pi - self.truncation_angle
         beam_envelope[outbeam] = 0
@@ -135,10 +134,9 @@ class Gaussian(PointMatch):
             beam_envelope = beam_envelope * phase_shift
         Ex = x_comp * beam_envelope * central_amplitude
         Ey = y_comp * beam_envelope * central_amplitude
-
         if azimuthal or radial:
-            E_theta = -radial*x_comp * beam_envelope * central_amplitude;
-            E_phi = azimuthal*y_comp * beam_envelope * central_amplitude;
+            E_theta = -radial*x_comp * beam_envelope * central_amplitude
+            E_phi = azimuthal*y_comp * beam_envelope * central_amplitude
         else:
             E_theta = - Ex * np.cos(phi) - Ey * np.sin(phi)
             E_phi = - Ex * np.sin(phi) + Ey * np.cos(phi)
@@ -150,28 +148,13 @@ class Gaussian(PointMatch):
             mm = mm[list(mode_index_vector)]
             mm = mm[abs(mm) <= paraxial_order+1]
             nn = nn[abs(mm) <= paraxial_order+1]
-            nn = np.sort(nn)
         a, b = self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
         self.a = a
         self.b = b
         self.power = power
         self.beam_type = 'incident'
         self.beam_basis = 'regular'
-
-    def translate_z(self, **kwargs):
-        if self.translation_method == 'default':        
-            A, B = translate_z(**kwargs)
-            return _, A, B
-        elif self.translation_method == 'new_beam_offset':
-            if not kwargs.get('z'):
-                kwargs['z'] = 0
-            if not kwargs.get('n_max'):
-                kwargs['n_max'] = self.n_max
-            return Gaussian(self.gtype, self.mode, 
-                offset=self.offset+np.array([0,0,kwargs['z']]),
-                omega=self.omega, power=self.power, lambda_m=self.lambda_b,
-                polarization=self.polarization, truncation_angle=self.truncation_angle,
-                n_max=self.n_max, angle=self.angle)
+        self.n_beams = 1
 
     def validate_beam_type(self, s):
         return True if s in ('lg', 'hg', 'ig') else False

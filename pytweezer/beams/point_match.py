@@ -18,8 +18,10 @@ class PointMatch(Beam):
             for n in range(1, nn.max()+1):
                 ci = np.where(nn == n)[0]
                 _, dtY, dpY = spherical_harmonics(n, np.sort(mm[ci-1]), theta, phi)
-                coefficient_matrix[:,ci] = np.concatenate([dpY.T, -dtY.T]) * np.power(1j,(n+1))/np.sqrt(n*(n+1))
-                coefficient_matrix[:,ci+nn.size] = np.concatenate([dtY.T, dpY.T])*np.power(1j, n)/np.sqrt(n*(n+1))
+                dtY = dtY.T if dtY.shape[0] < dtY.shape[1] else dtY
+                dpY = dpY.T if dpY.shape[0] < dpY.shape[1] else dpY
+                coefficient_matrix[:,ci] = np.concatenate([dpY, -dtY]) * np.power(1j,(n+1))/np.sqrt(n*(n+1))
+                coefficient_matrix[:,ci+nn.size] = np.concatenate([dtY, dpY])*np.power(1j, n)/np.sqrt(n*(n+1))
             if invert_coefficient_matrix:
                 icm = pinv(coefficient_matrix)
             if invert_coefficient_matrix:
@@ -44,7 +46,7 @@ class PointMatch(Beam):
             mm = mm[pwr > zero_rejection_level*pwr.max()]
             fa = fa[pwr > zero_rejection_level*pwr.max()]
             fb = fb[pwr > zero_rejection_level*pwr.max()]
-        a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm) 
+        a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm, self.n_max) 
         return a, b
 '''  
 #s    def bsc_focalplane(self, nn, mm, e_field, kr, theta, phi, varargin):
