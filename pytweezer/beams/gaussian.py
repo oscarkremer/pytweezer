@@ -3,6 +3,7 @@ from .point_match import PointMatch
 from .translation import translate_z
 from pytweezer.utils import angular_grid, combined_index, laguerre, paraxial_beam_waist
 from numpy.linalg import norm
+from copy import copy
 
 class Gaussian(PointMatch):
     def __init__(self, beam_function='lg',
@@ -159,6 +160,9 @@ class Gaussian(PointMatch):
         self.b = b
         self.shrink_nmax()
         self.power = power
+        new_beam = copy(self)*np.sqrt(power/(np.power(np.abs(self.a),2)+np.power(np.abs(self.b),2)).sum())
+        self.a = new_beam.a
+        self.b = new_beam.b
         self.beam_type = 'incident'
         self.beam_basis = 'regular'
         self.n_beams = 1

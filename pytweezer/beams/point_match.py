@@ -42,7 +42,6 @@ class PointMatch(Beam):
             mm = mm[pwr > zero_rejection_level*pwr.max()]
             fa = fa[pwr > zero_rejection_level*pwr.max()]
             fb = fb[pwr > zero_rejection_level*pwr.max()]
-        print(nn)
         a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm) 
         return a, b
 '''  

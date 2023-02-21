@@ -18,15 +18,12 @@ def _translate_z_(beam, z=0):
         return A, B
     beam.dz = beam.dz + np.abs(z)
     z = z * beam.k_m / 2 / np.pi
-    print(z)
     if isinstance(z, np.ndarray):
         for i in range(1, z.size+1):
             A, B = translate_z_type_helper(z[i], beam.n_max)
-            print(A.sum())
             beam.append(translate(beam, A, B))
             beam.beam_basis = 'regular'
     else:
-        print(beam.n_max)
         A, B = translate_z_type_helper(z, beam.n_max, beam.beam_basis)
         beam.append(translate(beam, A, B))
         beam.beam_basis = 'regular'

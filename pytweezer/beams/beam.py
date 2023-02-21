@@ -69,8 +69,8 @@ class Beam:
         for i in range(1, self.n_max+1):
             total_orders = combined_index(i, i)
             new_beam = copy(self)
-            new_beam.a = new_beam.a[:total_orders+1]
-            new_beam.b = new_beam.b[:total_orders+1]
+            new_beam.a = new_beam.a[:total_orders]
+            new_beam.b = new_beam.b[:total_orders]
             amagB = np.power(np.abs(new_beam.a), 2).sum()
             bmagB = np.power(np.abs(new_beam.b), 2).sum()
             a_error = abs( amagA - amagB )/amagA
@@ -109,6 +109,8 @@ class Beam:
             self.b = np.concatenate([self.b, other.b])
 
     def __mul__(self, other):
+        print(type(other), other)
+
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
@@ -129,10 +131,11 @@ class Beam:
             return NotImplemented
 
     def __rmul__(self, other):
-        print('here', other)
+        print(type(other))
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
+            return self
         elif isinstance(other, np.ndarray):
             if other.shape[0] == 2*self.a.shape[0]:
                 ab = np.matmul(other, np.concatenate([self.a, self.b]))
