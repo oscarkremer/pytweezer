@@ -27,26 +27,23 @@ class PointMatch(Beam):
             if invert_coefficient_matrix:
                 exp_coeffs = np.matmul(icm, e_field)
             else:
-#                B_linv = lin.solve(coefficient_matrix.T.dot(coefficient_matrix), coefficient_matrix.T)
-#                exp_coeffs = B_linv.dot(e_field)
                 exp_coeffs, _, _, _ = np.linalg.lstsq(coefficient_matrix, e_field, rcond=1e-12)
         else:
             assert icm.shape[1] == e_field.size, 'Number of cols in coefficient matrix must match length(e_field)'
             exp_coeffs = icm * e_field
-#        print(coefficient_matrix.shape, e_field.shape)
         fa = exp_coeffs[:int(exp_coeffs.shape[0]/2),:]
         fb = exp_coeffs[int(exp_coeffs.shape[0]/2):,:]
         if zero_rejection_level:
             pwr = np.power(np.abs(fa),2)+np.power(np.abs(fb),2)
             non_zero = pwr > zero_rejection_level*pwr.max()
-#            print(non_zero.shape, nn.shape, mm.shape, pwr.shape, fa.shape, fb.shape)
             nn = nn.reshape((-1, 1)) if len(nn.shape) == 1 else nn
             mm = mm.reshape((-1, 1)) if len(mm.shape) == 1 else mm
             nn = nn[pwr > zero_rejection_level*pwr.max()]
             mm = mm[pwr > zero_rejection_level*pwr.max()]
             fa = fa[pwr > zero_rejection_level*pwr.max()]
             fb = fb[pwr > zero_rejection_level*pwr.max()]
-        a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm, self.n_max) 
+        print(nn)
+        a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm) 
         return a, b
 '''  
 #s    def bsc_focalplane(self, nn, mm, e_field, kr, theta, phi, varargin):

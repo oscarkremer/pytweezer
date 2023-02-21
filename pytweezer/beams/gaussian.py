@@ -16,9 +16,9 @@ class Gaussian(PointMatch):
                         verbose=False,
                         translation_method='default',
                         omega=2*np.pi,
-                        index_m=1.33,
-                        na=1.02,
-                        angle=0,
+                        index_m=1,
+                        na=None,
+                        angle=None,
                         truncation_angle=np.pi/2,
                         angular_scaling='tantheta'
                         ):
@@ -62,7 +62,14 @@ class Gaussian(PointMatch):
         keepz = np.where(np.abs(mode_weights[int(row-1),:]) > 0)
         initial_mode = initial_mode[keepz, :][0]
         c = mode_weights[int(row-1), keepz]
-        self.angle = np.arcsin(na/self.index_m)
+        if not angle:
+            if not na:
+                na = 1.02
+                self.index_m = 1.33
+            self.angle = np.arcsin(na/self.index_m)
+        else:
+            self.angle = angle
+        print(self.angle, self.k_m)
         x_comp = polarization[0]
         y_comp = polarization[1]
         if offset.size == 3 and (np.abs(offset[:2])>0).any():
@@ -149,6 +156,7 @@ class Gaussian(PointMatch):
             mm = mm[abs(mm) <= paraxial_order+1]
             nn = nn[abs(mm) <= paraxial_order+1]
         a, b = self.bsc_far_field(nn, mm, e_field, theta, phi, zero_rejection_level= zero_rejection_level)
+        print(self.n_max)
         self.a = a
         self.b = b
         self.power = power

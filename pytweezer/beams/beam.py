@@ -36,6 +36,7 @@ class Beam:
             if not n.size:
                 self.n_max = 0
             else:
+                print(n)
                 self.n_max = n.max()
         total_orders = combined_index(n_max, n_max)
         ci = combined_index(n, m)
@@ -61,6 +62,37 @@ class Beam:
         A, B = translate_z(n_max, z, function_type=translation_type)
         return A, B
 
+    #def shrik_nmax(self):
+
+     # % SHRINK_NMAX reduces the size of the beam while preserving power
+
+      #p = inputParser;
+      #p.addParameter('tolerance', 1.0e-6);
+      #p.parse(varargin{:});
+
+#      amagA = full(sum(sum(abs(beam.a).^2)))
+#      bmagA = full(sum(sum(abs(beam.b).^2)))
+
+#      for ii = 1:beam.Nmax
+
+ #       total_orders = ott.utils.combined_index(ii, ii);
+ #       nbeam = beam;
+ #       nbeam.a = nbeam.a(1:total_orders);
+ #       nbeam.b = nbeam.b(1:total_orders);
+
+  #      amagB = full(sum(sum(abs(nbeam.a).^2)));
+  #      bmagB = full(sum(sum(abs(nbeam.b).^2)));
+
+   #     aapparent_error = abs( amagA - amagB )/amagA;
+   #     bapparent_error = abs( bmagA - bmagB )/bmagA;
+
+    #    if aapparent_error < p.Results.tolerance && ...
+    #        bapparent_error < p.Results.tolerance
+    #      break;
+    #    end
+    #  end
+    #end
+
 
     def append(self, other):
         if self.n_beams == 1:
@@ -74,15 +106,12 @@ class Beam:
             self.b = np.concatenate([self.b, other.b])
 
     def __mul__(self, other):
-        print('here')
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
             return self
         elif isinstance(other, np.ndarray):
             if other.shape[0] == 2*self.a.shape[0]:
-                print(self.a.shape)
-                print(self.b.shape)
                 ab = np.matmul(other, np.concatenate([self.a, self.b]))
                 self.a = ab[:int(ab.shape[0]/2),:]
                 self.b = ab[int(ab.shape[0]/2):,:]
@@ -90,8 +119,6 @@ class Beam:
         elif isinstance(other, complex):
             if hasattr(other, '__iter__'):
                 if other.shape[0] == 2*self.a.shape[0]:
-                    print(self.a.shape)
-                    print(self.b.shape)
                     ab = other*np.concatenate([self.a, self.b])
                     return self
         else:
@@ -912,36 +939,6 @@ class Beam:
     function beam = set.Nmax(beam, nmax)
       %set.Nmax resizes the beam vectors
       beam = beam.set_Nmax(nmax);
-    end
-
-    function nbeam = shrink_Nmax(beam, varargin)
-      % SHRINK_NMAX reduces the size of the beam while preserving power
-
-      p = inputParser;
-      p.addParameter('tolerance', 1.0e-6);
-      p.parse(varargin{:});
-
-      amagA = full(sum(sum(abs(beam.a).^2)));
-      bmagA = full(sum(sum(abs(beam.b).^2)));
-
-      for ii = 1:beam.Nmax
-
-        total_orders = ott.utils.combined_index(ii, ii);
-        nbeam = beam;
-        nbeam.a = nbeam.a(1:total_orders);
-        nbeam.b = nbeam.b(1:total_orders);
-
-        amagB = full(sum(sum(abs(nbeam.a).^2)));
-        bmagB = full(sum(sum(abs(nbeam.b).^2)));
-
-        aapparent_error = abs( amagA - amagB )/amagA;
-        bapparent_error = abs( bmagA - bmagB )/bmagA;
-
-        if aapparent_error < p.Results.tolerance && ...
-            bapparent_error < p.Results.tolerance
-          break;
-        end
-      end
     end
 
     function beam = set_Nmax(beam, nmax, varargin)
