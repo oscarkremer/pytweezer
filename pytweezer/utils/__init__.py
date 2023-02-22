@@ -2,6 +2,7 @@ from .angular_grid import angular_grid
 from .combined_index import combined_index
 from .laguerre import laguerre
 from .legendre_row import legendre_row
+from .ka_nmax import ka_nmax
 from .match_size import match_size
 from .n_max_2ka import n_max_2ka
 from .paraxial_beam_waist import paraxial_beam_waist

@@ -1,53 +1,7 @@
+import numpy as np
 from pytweezer.shapes import *
 
 class TMatrix:
-    '''    % Class representing the T-matrix of a scattering particle or lens.
-    % This class can either be instantiated directly or used as a base
-    % class for defining custom T-matrix types.
-    %
-    % This class is the base class for all other T-matrix object, you
-    % should inherit from this class when defining your own T-matrix
-    % creation methods. This class doesn't inherit from ``double`` or ``single``,
-    % instead the internal array type can be set at creation allowing the
-    % use of different data types such as ``sparse`` or ``gpuArray``.
-    %
-    % This class is not a handle class, therefore, when using the class
-    % methods you need to store the resulting T-matrix output, for example::
-    %
-    %   tmatrix = ott.Tmatrix();
-    %   new_tmatrix = tmatrix.scattered();
-    %
-    % Properties
-    %   - data        -- The T-matrix this class encapsulates
-    %   - type (enum) -- Type of T-matrix (total or scattered)
-    %
-    % Methods
-    %   - total()     -- Convert to a total-field T-matrix
-    %   - scattered() -- Convert to a scattered-field T-matrix
-    %   - real        -- Extract real part of T-matrix
-    %   - imag        -- Extract imaginary part of T-matrix
-    %
-    % Static methods
-    %   - simple()    -- Construct a simple particle T-matrix
-    %
-    % See also Tmatrix, simple, :class:`+ott.TmatrixMie`.
-
-    % This file is part of the optical tweezers toolbox.
-    % See LICENSE.md for information about using/distributing this file.
-    properties (SetAccess=protected)
-        data          % The matrix this class encapsulates
-    end
-
-    properties (Access=private)
-        type_         % Type of T-matrix (actual value)
-    end
-
-    properties (Dependent)
-        Nmax          % Current size of T-matrix
-        type          % Type of T-matrix (total or scattered)
-    end
-    '''
-
     def __init__(self):
         pass
 
@@ -76,7 +30,7 @@ class TMatrix:
         %   'cube'            Cube [ width ]
         %   'axisym'          Axis-symetric particle [ rho(:) z(:) ]
         '''
-        self.k_medium = self.parser_k_medium(k_medium, , 2.0*np.pi)    
+        self.k_medium = self.parser_k_medium(k_medium, 2.0*np.pi)    
         if isinstance(shape, Sphere):
             #TODO insert info about isSphere for ellipsoid and superellipsoid
             return 'mie'
@@ -98,148 +52,89 @@ class TMatrix:
         else:
             raise ValueError('ott:Tmatrix:simple:no_shape Unsupported particle shape')
         
-    def parser_k_medium(self, k_medium=None, index_m=None, lambda_0=None, default=2*np.pi):
-        if k_medium:
-            return k_medium
-        elif index_m:
-            if not lambda_0:            
+
+    def parser_wavenumber(self, p, default):
+        k_m = self.parser_k_medium(p, default=None)
+        k_p = self.parser_k_particle(p, default=None)
+        print(k_m, k_p, p)
+        if not k_m and not k_p:
+            k_m = default
+        if p['index_r']:
+            if not k_m and not k_p:
+               km = k_p / p['index_r']
+            elif k_m and not k_p:
+                k_p = k_m * p['index_r']
+            else:
+                raise ValueError('index_relative specified but both indices already known');
+        elif not k_p:
+            raise ValueError('Unable to determine particle wavenumber from inputs');
+        return k_m, k_p
+
+
+    def parser_k_medium(self, parameters, default=None):
+        if parameters.get('k_m'):
+            return parameters.get('k_m')
+        elif parameters.get('index_m'):
+            if not parameters.get('lambda_0'):            
                 raise ValueError('wavelength0 must be specified to use index_medium')
-            return index_m*2.0*np.pi/lambda_0
+            return parameters.get('index_m')*2.0*np.pi/parameters.get('lambda_0')
         else:
             return default
-        
-    def simple(self, shape, parameters=np.array([]), method=None, method_tol=None):
-        p = inputParser
-        p.KeepUnmatched = true
-        p.addOptional('parameters', [])
-        p.addParameter('method', '')
-        p.addParameter('method_tol', [])
-        p.parse(varargin{:});
-        unmatched = ott.utils.unmatchedArgs(p);
-        
-        % Parse remaining inputs for k_medium
-        pk = inputParser;
-        pk.KeepUnmatched = true;
-        pk.addParameter('k_medium', []);
-        pk.addParameter('wavelength_medium', []);
-        pk.addParameter('index_medium', []);
-        pk.addParameter('wavelength0', []);
-        pk.parse(unmatched{:});
-        k_medium = self.parser_k_medium(pk, 2.0*np.pi)
 
-        if ischar(shape) and ~isempty(p.Results.parameters):
-            shape = ott.shapes.Shape.simple(shape, p.Results.parameters);
-        elif ~isa(shape, 'ott.shapes.Shape') || ~isempty(p.Results.parameters)
-           raise TypeError('Must input either Shape object or string and parameters');
-        
-        method = p.Results.method;
-        if isempty(method)
-            method = ott.Tmatrix.defaultMethod(shape, ...
-                'method_tol', p.Results.method_tol, ...
-                'k_medium', k_medium);
-        if method=='mie':
-            tmatrix = ott.TmatrixMie.simple(shape, unmatched{:});
-        elif method == 'smarties':
-            tmatrix = ott.TmatrixSmarties.simple(shape, unmatched{:});
-        elif method == 'pm':
-            tmatrix = TmatrixPm.simple(shape, unmatched{:});
-        elif method == 'dda':
-            tmatrix = ott.TmatrixDda.simple(shape, unmatched{:});
-        elif method == 'ebcm':
-            tmatrix = ott.TmatrixEbcm.simple(shape, unmatched{:});
+    def parser_k_particle(self, parameters, default=None):
+        if parameters.get('k_p'):
+            return parameters['k_p']
+        elif parameters.get('lambda_p'):
+            return 2.0*np.pi/parameters['lambda_p']
+        elif parameters.get('index_p'):
+            if not parameters.get('lambda_0'):
+                raise ValueError('wavelength0 must be specified to use index_particle')
+            return parameter['index_p']*2*np.pi/parameter['lambda_0']
         else:
-            raise ValueError('Unsupported method specified')
-        return tmatrix
+            return default
 
     def cylinder_preferred_method(self, parameters, k, tolerance=0.01):
         ebcm1 = {}
-        ebcm1['x'] = [73, 169, 198, 228, 261, 391, 586, 718, 718, 657, 523, 457, 262, 73]
-        ebcm1['y'] = [409, 406, 418, 423, 397, 412, 400, 375, 223, 193, 195, 165, 204, 390]
+        ebcm1['x'] = np.array([73, 169, 198, 228, 261, 391, 586, 718, 718, 657, 523, 457, 262, 73])
+        ebcm1['y'] = np.array([409, 406, 418, 423, 397, 412, 400, 375, 223, 193, 195, 165, 204, 390])
         ebcm1['x'] = (ebcm1['x'] - 73) * 2.0 / (718 - 73)
         ebcm1['y'] = -(ebcm1['y'] - 438) * 6.0 / (438 - 9)
         pm1 = {}
-        pm1.x = [297, 355, 394, 718, 718, 591, 525, 391, 361, 297]
-        pm1.y = [943, 933, 946, 894, 868, 846, 874, 864, 913, 913]
-        pm1.x = (pm1.x - 73) * 2.0 / (718 - 73)
-        pm1.y = -(pm1.y - 985) * 6.0 / (985 - 555)
+        pm1['x'] = np.array([297, 355, 394, 718, 718, 591, 525, 391, 361, 297])
+        pm1['y'] = np.array([943, 933, 946, 894, 868, 846, 874, 864, 913, 913])
+        pm1['x'] = (pm1['x'] - 73) * 2.0 / (718 - 73)
+        pm1['y'] = -(pm1['y'] - 985) * 6.0 / (985 - 555)
         ebcm10 = {}
-        ebcm10.x = [73, 193, 718, 718, 525, 328, 229, 160, 73]
-        ebcm10.y = [430, 426, 381, 37, 94, 177, 214, 274, 375]
-        ebcm10.x = (ebcm10.x - 73) * 2.0 / (718 - 73)
-        ebcm10.y = -(ebcm10.y - 438) * 6.0 / (438 - 9)
+        ebcm10['x'] = np.array([73, 193, 718, 718, 525, 328, 229, 160, 73])
+        ebcm10['y'] = np.array([430, 426, 381, 37, 94, 177, 214, 274, 375])
+        ebcm10['x'] = (ebcm10['x'] - 73) * 2.0 / (718 - 73)
+        ebcm10['y'] = -(ebcm10['y'] - 438) * 6.0 / (438 - 9)
         pm10 = {}
-        pm10.x = [130, 160, 328, 397, 462, 522, 589, 718, 718, 654, 589, 522, 328, 265, 130]
-        pm10.y = [961, 970, 967, 951, 946, 946, 925, 912, 753, 784, 798, 798, 865, 874, 948]
-        pm10.x = (pm10.x - 73) * 2.0 / (718 - 73)
-        pm10.y = -(pm10.y - 985) * 6.0 / (985 - 555)
-        k = k * 1.064 / 2.0 / pi;
+        pm10['x'] = np.array([130, 160, 328, 397, 462, 522, 589, 718, 718, 654, 589, 522, 328, 265, 130])
+        pm10['y'] = np.array([961, 970, 967, 951, 946, 946, 925, 912, 753, 784, 798, 798, 865, 874, 948])
+        pm10['x'] = (pm10['x'] - 73) * 2.0 / (718 - 73)
+        pm10['y'] = -(pm10['y'] - 985) * 6.0 / (985 - 555)
+        k = k * 1.064 / 2.0 / np.pi
         diameter = 2.0 * parameters[0] * k
         len = parameters[1] * k
+        if tolerance >= 0.1:
+            if inpolygon(diameter, len, pm10.x, pm10.y):
+                method = 'pm'
+            elif inpolygon(diameter, len, ebcm10.x, ebcm10.y):
+                method = 'ebcm'
+            else:
+                method = 'other'
+        elif tolerance >= 0.01:
+            if inpolygon(diameter, len, pm1.x, pm1.y):
+                method = 'pm'
+            elif inpolygon(diameter, len, ebcm1.x, ebcm1.y):
+                method = 'ebcm'
+            else:
+                method = 'other'
+        else:
+            method = 'other'
 
-      if tolerance >= 0.1
-        if inpolygon(diameter, len, pm10.x, pm10.y)
-            method = 'pm';
-        elseif inpolygon(diameter, len, ebcm10.x, ebcm10.y)
-            method = 'ebcm';
-        else
-            method = 'other';
-        end
-      elseif tolerance >= 0.01
-        if inpolygon(diameter, len, pm1.x, pm1.y)
-          method = 'pm';
-        elseif inpolygon(diameter, len, ebcm1.x, ebcm1.y)
-          method = 'ebcm';
-        else
-          method = 'other';
-        end
-      else
-        method = 'other';
-      end
-    end
-
-    def parser_wavenumber(p, default):
-        km = ott.Tmatrix.parser_k_medium(p, []);
-        kp = ott.Tmatrix.parser_k_particle(p, []);
-
-        if isempty(km) && isempty(kp)
-            km = default;
-        if ~isempty(p.Results.index_relative)
-            if isempty(km) && ~isempty(kp)
-                km = kp ./ p.Results.index_relative;
-            elif ~isempty(km) && isempty(kp)
-                kp = km .* p.Results.index_relative;
-            else
-                raise ValueError('index_relative specified but both indices already known');
-        elif isempty(kp)
-            raise ValueError('Unable to determine particle wavenumber from inputs');
-        return km, kp
-
-   
-
-    function k_particle = parser_k_particle(p, default)
-      %PARSER_K_PARTICLE helper to get k_particle from a parser object
-
-      if ~isempty(p.Results.k_particle)
-        k_particle = p.Results.k_particle;
-      elseif ~isempty(p.Results.wavelength_particle)
-        k_particle = 2.0*pi/p.Results.wavelength_particle;
-      elseif ~isempty(p.Results.index_particle)
-        if isempty(p.Results.wavelength0)
-          error('wavelength0 must be specified to use index_particle');
-        end
-        k_particle = p.Results.index_particle ...
-            * 2.0*pi/p.Results.wavelength0;
-      elseif nargin == 2
-        k_particle = default;
-      else
-        error('Unable to determine k_particle from inputs');
-      end
-    end
-  end
-
- methods
-
-  
+'''
     function nmax = get.Nmax(tmatrix)
       %get.Nmax calculate Nmax from the current T-matrix data
       nmax1 = ott.utils.combined_index(size(tmatrix.data, 1)/2);
@@ -472,3 +367,4 @@ class TMatrix:
     end
   end
 end
+'''

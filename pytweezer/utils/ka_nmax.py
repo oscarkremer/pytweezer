@@ -1,3 +1,5 @@
+import numpy as np
+
 def ka_nmax(ka):
     '''    % Finds a reasonable Nmax to truncate at for given size parameter
     %

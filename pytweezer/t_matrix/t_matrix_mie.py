@@ -1,53 +1,48 @@
 
-import ott.utils.sbesselj
-import ott.utils.sbesselh1
-from pytweezer.utils import combined_index, sbesselj, sbesselh
+import warnings
+import numpy as np
+from .t_matrix import TMatrix
+from pytweezer.utils import combined_index, sbesselj, sbesselh, ka_nmax
 
 class TMatrixMie(TMatrix):
     def __init__(self, radius, **kwargs):
         parameters = self.input_parser(**kwargs)
-        self.radius = shape.__radius__
-      [tmatrix.k_medium, tmatrix.k_particle] = ...
-          tmatrix.parser_wavenumber(p, 2.0*pi);
+        self.radius = radius
+        if isinstance(self.radius, np.ndarray):
+            if self.radius.size == 1:
+                self.radius = self.radius[0]
+        self.k_m, self.k_p = self.parser_wavenumber(parameters, 2.0*np.pi)
         self.mu_relative = parameters['mu_relative']
-      if numel(tmatrix.radius) ~= numel(tmatrix.k_particle)
-        error('radius and k_particle must be the same length');
-      end
-      if numel(tmatrix.radius) >= 100
-        warning('May not work well for particles with >= 100 layers');
-      end
-      if isempty(p.Results.Nmax)
-        if p.Results.internal == false
-          Nmax = ott.utils.ka2nmax(tmatrix.k_medium*radius(end));
-        else
-          Nmax = ott.utils.ka2nmax(tmatrix.k_particle(end)*radius(end));
-        end
-      else
-        Nmax = p.Results.Nmax;
-      end
-      if p.Results.internal == false
-        tmatrix.type = 'scattered';
-      else
-        tmatrix.type = 'internal';
-      end
-      if numel(tmatrix.radius) == 1
-        tmatrix.data = tmatrix.tmatrix_mie(Nmax, p.Results.internal);
-      else
-        if p.Results.shrink && isempty(p.Results.Nmax)
-          oldNmax = Nmax;
-          Nmax = max(100, Nmax);
-        end
-       tmatrix.data = tmatrix.tmatrix_mie_layered(Nmax, p.Results.internal);
-        if p.Results.shrink
-          tmatrix.Nmax = oldNmax;
-        end
+        if isinstance(self.radius, np.ndarray):
+            if self.radius.size != self.k_p.size:
+                raise ValueError('radius and k_particle must be the same length')    
+            if self.radius.size >= 100:
+                warnings.warn('May not work well for particles with >= 100 layers')
+        if not parameters['n_max']:
+            if not parameters['internal']:
+                if isinstance(self.radius, np.ndarray):
+                    n_max = ka_nmax(self.k_m*self.radius[-1])
+                else:
+                    n_max = ka_nmax(self.k_m*self.radius)
+            else:
+                n_max = ka_nmax(self.k_p[-1]*self.radius[-1])
+        else:
+            n_max = parameters['n_max']
+        if not parameters['internal']:
+            self.type = 'scattered'
+        else:
+            self.type = 'internal'
+        if isinstance(self.radius, (int, float)): 
+            self.T = self.t_matrix_mie(n_max, parameters['internal'])
+        else:
+            if parameters['shrink'] and not parameters['n_max']:
+                old_nmax = n_max
+                n_max = max(100, n_max)
+            self.T = self.tmatrix_mie_layered(n_max, parameters['internal'])
+            if parameters['shrink']:
+                self.n_max = old_nmax
 
-      end
-    end
-  end
-end
-
-    def input_parser(**kwargs):
+    def input_parser(self, **kwargs):
         if not kwargs.get('n_max'):
             kwargs['n_max'] = None
         if not kwargs.get('lambda_0'):
@@ -61,48 +56,47 @@ end
         if not kwargs.get('mu_relative'):
             kwargs['mu_relative'] = 1.0
 
-        if not kwargs.get('k_medium'):
-            kwargs['k_medium'] = None
+        if not kwargs.get('k_m'):
+            kwargs['k_m'] = None
         if not kwargs.get('lambda_m'):
             kwargs['lambda_m'] = None
-        if not kwargs.get('k_medium'):
-            kwargs['k_medium'] = None
-        if not kwargs.get('k_particle'):
-            kwargs['k_particle'] = None
+        if not kwargs.get('index_m'):
+            kwargs['index_m'] = None
+        if not kwargs.get('k_p'):
+            kwargs['k_p'] = None
         if not kwargs.get('lambda_p'):
             kwargs['lambda_p'] = None
         if not kwargs.get('index_p'):
             kwargs['index_p'] = None
         return kwargs
 
-'''
-    def tmatrix_mie(self, tmatrix, Nmax, internal):
-        n = [1:Nmax]
-        m = tmatrix.k_particle/tmatrix.k_medium
-        mu = tmatrix.mu_relative
-        r0 = tmatrix.k_medium * tmatrix.radius
-        r1 = tmatrix.k_particle * tmatrix.radius
-
-        indexing = combined_index(1:Nmax^2+2*Nmax)
-        j0 = (sbesselj(n,r0)).';
-        j1 = (sbesselj(n,r1)).';
-        h0 = (sbesselh1(n,r0)).';
-        j0d = (sbesselj(n-1,r0) - n.*sbesselj(n,r0)/r0).';
-        j1d = (sbesselj(n-1,r1) - n.*sbesselj(n,r1)/r1).';
-        h0d = (sbesselh1(n-1,r0) - n.*sbesselh1(n,r0)/r0).';
-
-        if internal == false:
-            b = -( mu*j1d.*j0 - m*j0d.*j1 ) ./ ( mu*j1d.*h0 - m*h0d.*j1 );
-            a = -( mu*j0d.*j1 - m*j1d.*j0 ) ./ ( mu*h0d.*j1 - m*j1d.*h0 );
-            T=sparse([1:2*(Nmax^2+2*Nmax)],[1:2*(Nmax^2+2*Nmax)], ...
-                [a(indexing);b(indexing)]);
+    def t_matrix_mie(self, n_max, internal):
+        n = np.arange(1, n_max+1, 1)
+        m = self.k_p/self.k_m
+        mu = self.mu_relative
+        r0 = self.k_m * self.radius
+        r1 = self.k_p * self.radius
+        print(n, m, mu, r0, r1)
+        indexing = combined_index(np.arange(1, n_max**2+2*n_max+1,1))
+        j0 = sbesselj(n,r0).T
+        j1 = sbesselj(n,r1).T
+        h0 = sbesselh1(n,r0).T
+        j0d = (sbesselj(n-1,r0) - n*sbesselj(n,r0)/r0).T
+        j1d = (sbesselj(n-1,r1) - n*sbesselj(n,r1)/r1).T
+        h0d = (sbesselh1(n-1,r0) - n*sbesselh1(n,r0)/r0).T
+        if not internal:
+            b = -( mu*j1d*j0 - m*j0d*j1)/(mu*j1d*h0 - m*h0d*j1)
+            a = -( mu*j0d*j1 - m*j1d*j0)/(mu*h0d*j1 - m*j1d*h0)
+            T=sparse(np.arange(1,2*(Nmax**2+2*Nmax)+1,1),np.arange(1,2*(Nmax**2+2*Nmax)+1,1),
+                [a(indexing),b(indexing)])
         else:
-            d = ( h0d.*j0 - j0d.*h0 ) ./ ( m*j1.*h0d - j1d.*h0 );
-            c = ( j0d.*h0 - h0d.*j0 ) ./ ( m*j1d.*h0 - h0d.*j1 );
-            T=sparse([1:2*(Nmax^2+2*Nmax)],[1:2*(Nmax^2+2*Nmax)], ...
-                [c(indexing);d(indexing)]);
+            d = ( h0d*j0 - j0d*h0 )/( m*j1*h0d - j1d*h0 )
+            c = ( j0d*h0 - h0d*j0 )/( m*j1d*h0 - h0d*j1 )
+            T=sparse(np.arange(1,2*(Nmax**2+2*Nmax)+1,1),np.arange(1,2*(Nmax**2+2*Nmax)+1,1),
+                [c(indexing),d(indexing)])
         return T 
 
+'''
     def tmatrix_mie_layered(self, tmatrix, Nmax, internal)
       %TMATRIX_MIE code from tmatrix_mie_layered.m
 
