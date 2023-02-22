@@ -1,49 +1,49 @@
-function [fx,fy,fz,tx,ty,tz,sx,sy,sz]=forcetorque(ibeam, sbeam, varargin)
-% FORCETORQUE calculate force/torque/spin in a 3D orthogonal space
-% If the beam shape coefficients are in the original coordinates,
-% this outputs the force, torque and spin in 3D carteisan coordinates.
-%
-% Units are beam power.  Force results should be multipled by n/c
-% and torque results multiplied by 1/omega, assuiming the beam coefficients
-% already have the correct units for power.
-%
-% [fxyz,txyz,sxyz] = FORCETORQUE(ibeam, sbeam) calculates the force,
-% torque and spin using the incident beam, ibeam, and the scattered
-% beam, sbeam.
-%
-% Output is stored in [3, 1] column vectors.  If torque or spin are
-% omitted, only force or force/torque are calculated.
-%
-% FORCETORQUE(ibeam, T, 'position', position) first applies a translation
-% to the beam.  position can be a 3xN array, resulting in multiple
-% force/torque calculations for each position.
-%
-% FORCETORQUE(ibeam, T, 'rotation', rotation) effectively applies a
-% rotation to the particle by first applying the rotation to the beam,
-% scattering the beam by the T-matrix and applying the inverse rotation
-% to the scattered beam.  rotation can be a 3x3N array, resulting in
-% multiple calculations.
-%
-% If both position and rotation are present,
-% the translation is applied first, followed by the rotation.
-% If both position and rotation are arrays, they must have the same
-% number of locations (N) or a single location (N=1).
-%
-% ibeam can contain multiple beams.  If multiple beams are present,
-% the outputs are [3, nlocations, nbeams] arrays unless the
-% coherent argument is set to true, in which case the beams are added
-% after translation.
-%
-% [fx,fy,fz,tx,ty,tz,sx,sy,sz] = FORCETORQUE(...) unpacks the
-% force/torque/spin into separate output arguments.
-%
-% This uses mathematical result of Farsund et al., 1996, in the form of
-% Chricton and Marsden, 2000, and our standard T-matrix notation S.T.
-% E_{inc}=sum_{nm}(aM+bN);
-%
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
-
+def forcetorque(ibeam, sbeam, varargin):
+'''    % FORCETORQUE calculate force/torque/spin in a 3D orthogonal space
+    % If the beam shape coefficients are in the original coordinates,
+    % this outputs the force, torque and spin in 3D carteisan coordinates.
+    %
+    % Units are beam power.  Force results should be multipled by n/c
+    % and torque results multiplied by 1/omega, assuiming the beam coefficients
+    % already have the correct units for power.
+    %
+    % [fxyz,txyz,sxyz] = FORCETORQUE(ibeam, sbeam) calculates the force,
+    % torque and spin using the incident beam, ibeam, and the scattered
+    % beam, sbeam.
+    %
+    % Output is stored in [3, 1] column vectors.  If torque or spin are
+    % omitted, only force or force/torque are calculated.
+    %
+    % FORCETORQUE(ibeam, T, 'position', position) first applies a translation
+    % to the beam.  position can be a 3xN array, resulting in multiple
+    % force/torque calculations for each position.
+    %
+    % FORCETORQUE(ibeam, T, 'rotation', rotation) effectively applies a
+    % rotation to the particle by first applying the rotation to the beam,
+    % scattering the beam by the T-matrix and applying the inverse rotation
+    % to the scattered beam.  rotation can be a 3x3N array, resulting in
+    % multiple calculations.
+    %
+    % If both position and rotation are present,
+    % the translation is applied first, followed by the rotation.
+    % If both position and rotation are arrays, they must have the same
+    % number of locations (N) or a single location (N=1).
+    %
+    % ibeam can contain multiple beams.  If multiple beams are present,
+    % the outputs are [3, nlocations, nbeams] arrays unless the
+    % coherent argument is set to true, in which case the beams are added
+    % after translation.
+    %
+    % [fx,fy,fz,tx,ty,tz,sx,sy,sz] = FORCETORQUE(...) unpacks the
+    % force/torque/spin into separate output arguments.
+    %
+    % This uses mathematical result of Farsund et al., 1996, in the form of
+    % Chricton and Marsden, 2000, and our standard T-matrix notation S.T.
+    % E_{inc}=sum_{nm}(aM+bN);
+    %
+    % This file is part of the optical tweezers toolbox.
+    % See LICENSE.md for information about using/distributing this file.
+'''
 ott.warning('internal');
 
 fx=0;

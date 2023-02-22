@@ -1,15 +1,15 @@
 from pytweezer.t_matrix import TMatrix, TMatrixMie
 
 
-def test_t_matrix():
+
+
+'''
+def test_power_matrix():
     T = TMatrix.simple(...
-      'sphere', 1.0, 'wavelength0', 1.0, ...
-      'index_medium', 1.0, 'index_particle', 1.2);
+    'sphere', 1.0, 'wavelength0', 1.0, ...
+    'index_medium', 1.0, 'index_particle', 1.2);
 
     testCase.TestData.tol = 1.0e-6;
-
-
-def test_power_matrix:
     T = testCase.TestData.T;
     checkWithTol(testCase, abs(1.0 - sum(abs(T.total.data).^2, 2)), ...
         'Power not conserved');
@@ -103,3 +103,5 @@ def testRealImagFunctions(testCase):
   T4 = T.real();
   T5 = T.imag();
 
+
+'''
