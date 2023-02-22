@@ -1,4 +1,4 @@
-def forcetorque(ibeam, sbeam, position=np.array([[],[],[]]), 
+def force_torque(ibeam, sbeam, position=np.array([[],[],[]]), 
         rotation=np.array([[],[],[]]), coherent=False):
     fx=0
     fy=0
@@ -9,7 +9,6 @@ def forcetorque(ibeam, sbeam, position=np.array([[],[],[]]),
     sx=0
     sy=0
     sz=0
-    print(position.shape)
     assert(size(p.Results.position, 1) == 3 ...
         || numel(p.Results.position) == 0, ...
         'position must either be a empty array or 3xN array');
