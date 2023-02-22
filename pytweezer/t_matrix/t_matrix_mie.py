@@ -1,6 +1,7 @@
 
 import warnings
 import numpy as np
+from scipy.sparse import csr_matrix
 from .t_matrix import TMatrix
 from pytweezer.utils import combined_index, sbesselj, sbesselh, ka_nmax
 
@@ -76,19 +77,23 @@ class TMatrixMie(TMatrix):
         mu = self.mu_relative
         r0 = self.k_m * self.radius
         r1 = self.k_p * self.radius
-        print(n, m, mu, r0, r1)
-        indexing = combined_index(np.arange(1, n_max**2+2*n_max+1,1))
-        j0 = sbesselj(n,r0).T
-        j1 = sbesselj(n,r1).T
-        h0 = sbesselh1(n,r0).T
-        j0d = (sbesselj(n-1,r0) - n*sbesselj(n,r0)/r0).T
-        j1d = (sbesselj(n-1,r1) - n*sbesselj(n,r1)/r1).T
-        h0d = (sbesselh1(n-1,r0) - n*sbesselh1(n,r0)/r0).T
+        indexing, _ = combined_index(np.arange(1, n_max**2+2*n_max+1,1))
+        indexing = indexing.astype(int)-1
+        j0 = sbesselj(n, r0)[0].T
+        j1 = sbesselj(n, r1)[0].T
+        h0 = sbesselh(n, r0, htype='1')[0].T
+
+        j0d = (sbesselj(n-1,r0)[0] - n*sbesselj(n,r0)[0]/r0).T
+        j1d = (sbesselj(n-1,r1)[0] - n*sbesselj(n,r1)[0]/r1).T
+        h0d = (sbesselh(n-1,r0, htype='1')[0] - n*sbesselh(n,r0, htype='1')[0]/r0).T
+
         if not internal:
             b = -( mu*j1d*j0 - m*j0d*j1)/(mu*j1d*h0 - m*h0d*j1)
             a = -( mu*j0d*j1 - m*j1d*j0)/(mu*h0d*j1 - m*j1d*h0)
-            T=sparse(np.arange(1,2*(Nmax**2+2*Nmax)+1,1),np.arange(1,2*(Nmax**2+2*Nmax)+1,1),
-                [a(indexing),b(indexing)])
+            print(np.concatenate([a[indexing], b[indexing]]).shape)
+            n_index = np.arange(1,2*(n_max**2+2*n_max)+1,1).astype(int)-1
+            T = csr_matrix((np.concatenate([a[indexing], b[indexing]]).reshape((-1)), 
+                (n_index, n_index)), shape=(n_index.max()+1,n_index.max()+1)).toarray()
         else:
             d = ( h0d*j0 - j0d*h0 )/( m*j1*h0d - j1d*h0 )
             c = ( j0d*h0 - h0d*j0 )/( m*j1d*h0 - h0d*j1 )
