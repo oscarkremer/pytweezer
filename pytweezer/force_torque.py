@@ -1,123 +1,61 @@
+import numpy as np
+from .t_matrix import TMatrixMie
+from copy import copy
+
 def force_torque(ibeam, sbeam, position=np.array([[],[],[]]), 
         rotation=np.array([[],[],[]]), coherent=False):
-    fx=0
-    fy=0
-    fz=0
-    tx=0
-    ty=0
-    tz=0
-    sx=0
-    sy=0
-    sz=0
-    assert(size(p.Results.position, 1) == 3 ...
-        || numel(p.Results.position) == 0, ...
-        'position must either be a empty array or 3xN array');
-    assert(size(p.Results.rotation, 1) == 3 ...
-        || numel(p.Results.rotation) == 0, ...
-        'rotation must either be a empty array or 3x3N array');
-'''
+    fx, fy, fz, tx, ty, tz, sx, sy, sz= 0, 0, 0, 0, 0, 0, 0, 0, 0
+    assert position.shape[0] == 3 or position.size == 0, 'Position must either be a empty array or 3xN array'
+    assert rotation.shape[0] == 3 or rotation.size == 0, 'Rotation must either be a empty array or 3x3N array'
+    if isinstance(sbeam, TMatrixMie):
+        T = copy(sbeam)
+        n_positions = max(1, position.shape[1])
+        n_rotations = max(1, rotation.shape[1]/3)
+        if n_positions != 1 and n_rotations != 1 and n+positions != n_rotations:
+            raise ValueError('OTT:forcetorque:nlocations Number of positions/rotations should be equal or 1')
+        n_locations = max(n_positions, n_rotations)
+        T.set_type('scattered')   
+        n_beams = ibeam.n_beams
+        if coherent:
+            n_beams = 1
+        f = np.zeros((3*T.T.shape, n_locations, nbeams))
+        t = np.zeros((3*T.T.shape, n_locations, nbeams))
+        s = np.zeros((3*T.T.shape, n_locations, nbeams))
+        for i in range(1, n_locations+1):
+            if position.size:
+                if n_positions == 1:
+                    aux_position = position
+                else:
+                    aux_position = position[:,i]
+            if rotation.size:
+                if n_rotations == 1:
+                    aux_rotation = rotation
+                else:
+                    aux_rotation = rotation[:,i]
+            sbeam, tbeam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
+            if coherent:
+                sbeam = sbeam.mergeBeams()
+                tbeam = tbeam.mergeBeams()
+            fl, tl, sl = _force_torque_(tbeam, sbeam)
+            f[:, i, :] = fl.reshape((3*T.size, 1, n_beams))
+            t[:, i, :] = tl.reshape((3*T.size, 1, n_beams))
+            z[:, i, :] = sl.reshape((3*T.size, 1, n_beams))
+        f = squeeze(f)
+        t = squeeze(t)
+        s = squeeze(s)
+        fx = f[1*np.arange(1, n_particles+1), :]
+        fy = f[2*np.arange(1, n_particles+1), :]
+        fz = f[3*np.arange(1, n_particles+1), :]
+        tx = t[1*np.arange(1, n_particles+1), :]
+        ty = t[2*np.arange(1, n_particles+1), :]
+        tz = t[3*np.arange(1, n_particles+1), :]
+        sx = s[1*np.arange(1, n_particles+1), :]
+        sy = s[2*np.arange(1, n_particles+1), :]
+        sz = s[3*np.arange(1, n_particles+1), :]
+        return fx, fy, fz, tx, ty, tz, sx, sy, sz
+'''  
 
-if isa(sbeam, 'ott.Tmatrix')
-
-  % Rename T-matrix
-  T = sbeam;
-  nparticles = numel(T);
-
-  npositions = max(1, size(p.Results.position, 2));
-  nrotations = max(1, size(p.Results.rotation, 2)/3);
-
-  if npositions ~= 1 && nrotations ~= 1 && npositions ~= nrotations
-    error('OTT:forcetorque:nlocations', ...
-      'Number of positions/rotations should be equal or 1');
-  end
-
-  nlocations = max([npositions, nrotations]);
-
-  % Ensure all T-matricies have appropriate type
-  for ii = 1:nparticles
-    T(ii).type = 'scattered';
-  end
-  
-  nbeams = ibeam.Nbeams;
-  if p.Results.coherent
-    nbeams = 1;
-  end
-
-  % Preallocate output
-  f = zeros(3*numel(T), nlocations, nbeams);
-  t = f;
-  s = f;
-
-  for ii = 1:nlocations
-    
-    % Output the progress
-    if ~isempty(p.Results.progress_callback)
-      p.Results.progress_callback((ii-1)/nlocations);
-    end
-
-    position = [];
-    if ~isempty(p.Results.position)
-      if npositions == 1
-        position = p.Results.position;
-      else
-        position = p.Results.position(:, ii);
-      end
-    end
-
-    rotation = [];
-    if ~isempty(p.Results.rotation)
-      if nrotations == 1
-        rotation = p.Results.rotation;
-      else
-        rotation = p.Results.rotation(:, 3*(ii-1) + (1:3));
-      end
-    end
-
-    % Calculate the scattered beams and translated beam
-    [sbeam, tbeam] = ibeam.scatter(T, ...
-        'position', position, 'rotation', rotation);
-      
-    % If beams are coherent, combine them
-    if p.Results.coherent
-      sbeam = sbeam.mergeBeams();
-      tbeam = tbeam.mergeBeams();
-    end
-
-    % Calculate force
-    [fl,tl,sl] = ott.forcetorque(tbeam, sbeam);
-
-    % Unpack the calculated force
-    f(:, ii, :) = reshape(fl, 3*numel(T), 1, nbeams);
-    t(:, ii, :) = reshape(tl, 3*numel(T), 1, nbeams);
-    s(:, ii, :) = reshape(sl, 3*numel(T), 1, nbeams);
-  end
-  
-  % Squeeze to 2-D array if Nbeams is 1
-  f = squeeze(f);
-  t = squeeze(t);
-  s = squeeze(s);
-
-  % Move output to appropriate locations
-  if nargout > 3
-    fx = f(1*(1:nparticles), :);
-    fy = f(2*(1:nparticles), :);
-    fz = f(3*(1:nparticles), :);
-    tx = t(1*(1:nparticles), :);
-    ty = t(2*(1:nparticles), :);
-    tz = t(3*(1:nparticles), :);
-    sx = s(1*(1:nparticles), :);
-    sy = s(2*(1:nparticles), :);
-    sz = s(3*(1:nparticles), :);
-  else
-    fx = f;
-    fy = t;
-    fz = s;
-  end
-
-  ott.warning('external');
-  return;
-end
-
+def _force_torque_():
     % Check the number of beams in each input
     if ibeam.Nbeams ~= sbeam.Nbeams && ibeam.Nbeams ~= 1 && sbeam.Nbeams ~= 1
     error('Beam objects must contain same number of beams or 1 beam');

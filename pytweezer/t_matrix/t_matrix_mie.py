@@ -14,6 +14,7 @@ class TMatrixMie(TMatrix):
                 self.radius = self.radius[0]
         self.k_m, self.k_p = self.parser_wavenumber(parameters, 2.0*np.pi)
         self.mu_relative = parameters['mu_relative']
+
         if isinstance(self.radius, np.ndarray):
             if self.radius.size != self.k_p.size:
                 raise ValueError('radius and k_particle must be the same length')    
@@ -56,7 +57,6 @@ class TMatrixMie(TMatrix):
             kwargs['index_r'] = None
         if not kwargs.get('mu_relative'):
             kwargs['mu_relative'] = 1.0
-
         if not kwargs.get('k_m'):
             kwargs['k_m'] = None
         if not kwargs.get('lambda_m'):
@@ -90,7 +90,6 @@ class TMatrixMie(TMatrix):
         if not internal:
             b = -( mu*j1d*j0 - m*j0d*j1)/(mu*j1d*h0 - m*h0d*j1)
             a = -( mu*j0d*j1 - m*j1d*j0)/(mu*h0d*j1 - m*j1d*h0)
-            print(np.concatenate([a[indexing], b[indexing]]).shape)
             n_index = np.arange(1,2*(n_max**2+2*n_max)+1,1).astype(int)-1
             T = csr_matrix((np.concatenate([a[indexing], b[indexing]]).reshape((-1)), 
                 (n_index, n_index)), shape=(n_index.max()+1,n_index.max()+1)).toarray()

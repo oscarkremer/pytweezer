@@ -114,5 +114,4 @@ def _spherical_harmonics(n, m, theta, phi=None):
     expphi = np.exp(1j*mv*phiM)
 
     Y = pnm*expphi
-   # print(Y.min(), Y.max(), Y.mean())
     return Y

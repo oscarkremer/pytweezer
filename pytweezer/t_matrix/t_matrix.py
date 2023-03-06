@@ -56,7 +56,6 @@ class TMatrix:
     def parser_wavenumber(self, p, default):
         k_m = self.parser_k_medium(p, default=None)
         k_p = self.parser_k_particle(p, default=None)
-        print(k_m, k_p, p)
         if not k_m and not k_p:
             k_m = default
         if p['index_r']:
@@ -89,7 +88,7 @@ class TMatrix:
         elif parameters.get('index_p'):
             if not parameters.get('lambda_0'):
                 raise ValueError('wavelength0 must be specified to use index_particle')
-            return parameter['index_p']*2*np.pi/parameter['lambda_0']
+            return parameters['index_p']*2*np.pi/parameters['lambda_0']
         else:
             return default
 
@@ -133,6 +132,19 @@ class TMatrix:
                 method = 'other'
         else:
             method = 'other'
+
+    def set_type(self, new_type):
+        if not new_type in ['total', 'internal', 'scattered']:
+            raise ValueError('Invalid T-Matrix type')
+        if self.type:
+            if self.type != new_type:
+                if self.type == 'scattered' and new_type == 'total':
+                    self.T = 2.0*self.T + np.eye(self.T.shape[0]) 
+                elif self.type == 'total' and new_type == 'scattered':
+                    self.T = 0.5*(self.T - np.eye(self.T.shape[0]))
+                else:
+                    raise ValueError('No known conversion')
+        self.type = new_type
 
 '''
     function nmax = get.Nmax(tmatrix)
@@ -286,36 +298,10 @@ class TMatrix:
       % Set the T-matrix type, converting if needed
       tmatrix = tmatrix.set_type(type);
     end
+'''
 
-    function tmatrix = set_type(tmatrix, type, varargin)
-      % SET_TYPE set T-matrix type with additional options
 
-      p = inputParser;
-      p.addParameter('convert', true);
-      p.parse(varargin{:});
-
-      % Check the type is valid
-      if ~strcmpi(type, 'total') && ~strcmpi(type, 'internal') ...
-          && ~strcmpi(type, 'scattered')
-        error('Invalid T-matrix type');
-      end
-
-      % Do type conversions
-      if p.Results.convert && ~isempty(tmatrix.type) ...
-          && ~strcmpi(tmatrix.type, type)
-        if strcmpi(tmatrix.type, 'scattered') && strcmpi(type, 'total')
-          tmatrix.data = 2.0*tmatrix.data + speye(size(tmatrix.data));
-        elseif strcmpi(tmatrix.type, 'total') && strcmpi(type, 'scattered')
-          tmatrix.data = 0.5*(tmatrix.data - speye(size(tmatrix.data)));
-        else
-          error('No known conversion');
-        end
-      end
-
-      % Set the type
-      tmatrix.type_ = type;
-    end
-
+'''
     function tmatrix = total(tmatrix)
       % TOTAL convert T-matrix to total
       tmatrix.type = 'total';

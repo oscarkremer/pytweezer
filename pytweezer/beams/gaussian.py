@@ -67,6 +67,7 @@ class Gaussian(PointMatch):
             if not na:
                 na = 1.02
                 self.index_m = 1.33
+            
             self.angle = np.arcsin(na/self.index_m)
         else:
             self.angle = angle
@@ -82,6 +83,7 @@ class Gaussian(PointMatch):
             axi_symmetry = 0
         w0 = paraxial_beam_waist(paraxial_order)
         wscaling = 1/np.tan(np.abs(self.angle))
+
         n_theta = (n_max + 1)
         n_phi = 2*(n_max + 1)
         if axi_symmetry:
@@ -141,6 +143,7 @@ class Gaussian(PointMatch):
             beam_envelope = beam_envelope * phase_shift
         Ex = x_comp * beam_envelope * central_amplitude
         Ey = y_comp * beam_envelope * central_amplitude
+
         if azimuthal or radial:
             E_theta = -radial*x_comp * beam_envelope * central_amplitude
             E_phi = azimuthal*y_comp * beam_envelope * central_amplitude

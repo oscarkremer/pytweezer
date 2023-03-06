@@ -47,6 +47,7 @@ class Beam:
         c_in_beams = c_in_beams.reshape((-1))
         a = csr_matrix((a, (ci-1, c_in_beams-1)), shape=(total_orders, n_beams)).toarray()
         b = csr_matrix((b, (ci-1, c_in_beams-1)), shape=(total_orders, n_beams)).toarray() 
+        
         n, m = combined_index(np.arange(1, n_max**2+2*n_max+1, 1))
         n = n.T
         m = m.T
@@ -80,23 +81,75 @@ class Beam:
                 self.b = new_beam.b 
                 self.n_max = i
                 break
- #       nbeam.a = nbeam.a(1:total_orders);
- #       nbeam.b = nbeam.b(1:total_orders);
+    '''
+    def scatter(self, t_matrix, position=np.array([[],[],[]]), rotation=np.array([[],[],[]])):
+        max_n_max1 = 0
+        max_n_max2 = 0
+        t_type = t_matrix.type
+        if isinstance(t_matrix, np.ndarray):
+            for t in t_matrix:
+                maxNmax1 = max(maxNmax1, t.Nmax[0])
+                maxNmax2 = max(maxNmax2, t.Nmax[1])
+            # TODO: implement method for when t_matrix is an array of matrices
+        else:
+            max_n_max1 = max(max_n_max1, t_matrix.n_max[0])
+            max_n_max2  = max(max_n_max2, t_matrix.n_max[1])
+            if t_matrix.type == 'scattered' and not position.size:
+                max_n_max2 = min(max_n_max2, self.n_max)
+            #make set nmax method for t_matrix
+            t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
+            if position.size:
+                if t_matrix.type != 'scattered':
+                    max_n_max2 = min(max_n_max2, self.n_max)
+                    t_matrix.set_type('scattered')
+                    t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
+                self.translate_xyz(position, n_max=max_n_max2+1)
+            r_beam = copy(self)
+            if rotation.size:                            
+                r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)
+            if t_matrix.type == 'scattered':
+                rbeam = rbeam.set_n_max(maxNmax2, 'powerloss', 'ignore');
+            else:
+                t_matrix.set_n_max(np.array([maxNmax1, rbeam.Nmax], 'powerloss', 'ignore')
+                if t_matrix.type == 'internal':
+                    warnings.warn('ott:Bsc:scatter: It may be more optimal to use a scattered T-matrix');
 
-  #      amagB = full(sum(sum(abs(nbeam.a).^2)));
-  #      bmagB = full(sum(sum(abs(nbeam.b).^2)));
+      sbeam = ott.Bsc();
+      for ii = 1:numel(tmatrix)
+        sbeam = sbeam.append(tmatrix(ii).data * rbeam);
+      end
 
-   #     aapparent_error = abs( amagA - amagB )/amagA;
-   #     bapparent_error = abs( bmagA - bmagB )/bmagA;
+      % Apply the inverse rotation
+      if ~isempty(p.Results.rotation)
 
-    #    if aapparent_error < p.Results.tolerance && ...
-    #        bapparent_error < p.Results.tolerance
-    #      break;
-    #    end
-    #  end
-    #end
+        % This seems to take a long time
+        %sbeam = sbeam.rotate('wigner', D');
 
+        sbeam = sbeam.rotate(inv(p.Results.rotation));
+      end
 
+      % Assign a type to the resulting beam
+      switch tmatrix(1).type
+        case 'total'
+          sbeam.type = 'total';
+          sbeam.basis = 'outgoing';
+          
+        case 'scattered'
+          sbeam.type = 'scattered';
+          sbeam.basis = 'outgoing';
+          
+        case 'internal'
+          sbeam.type = 'internal';
+          sbeam.basis = 'regular';
+        
+          % Wavelength has changed, update it
+          sbeam.k_medium = tmatrix(1).k_particle;
+          
+        otherwise
+          error('Unrecognized T-matrix type');
+      end
+    end
+    '''  
     def append(self, other):
         if self.n_beams == 1:
             # DANGER: Have to implement this section
@@ -109,8 +162,6 @@ class Beam:
             self.b = np.concatenate([self.b, other.b])
 
     def __mul__(self, other):
-        print(type(other), other)
-
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
@@ -131,7 +182,6 @@ class Beam:
             return NotImplemented
 
     def __rmul__(self, other):
-        print(type(other))
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
@@ -152,6 +202,7 @@ class Beam:
         else:
             #raise #TypeError('The multiplication operation is not possible for the type of variable used!')
             return NotImplemented
+    __array_priority__ = 10000
 
 '''
  function data = GetVisualisationData(field_type, xyz, rtp, vxyz, vrtp)
@@ -1372,47 +1423,7 @@ class Beam:
       moment = sum(Eirr_xyz .* sin(theta.') .* dtheta .* dphi, 2);
     end
 
-    function [sbeam, beam] = scatter(beam, tmatrix, varargin)
-      p = inputParser;
-      p.addParameter('position', []);
-      p.addParameter('rotation', []);
-      p.parse(varargin{:});
-
-      % Determine the maximum tmatrix.Nmax(2) and check type
-      maxNmax1 = 0;
-      maxNmax2 = 0;
-      tType = tmatrix(1).type;
-      for ii = 1:numel(tmatrix)
-        maxNmax1 = max(maxNmax1, tmatrix(ii).Nmax(1));
-        maxNmax2 = max(maxNmax2, tmatrix(ii).Nmax(2));
-        if ~strcmpi(tmatrix(ii).type, tType)
-          error('T-matrices must be same type');
-        end
-      end
-
-      % If the T is scattered, we can save time by throwing away columns
-      % Only works when we don't grow the beam in translation
-      if strcmpi(tmatrix(1).type, 'scattered') ...
-          && isempty(p.Results.position)
-        maxNmax2 = min(maxNmax2, beam.Nmax);
-      end
-
-      % Ensure all T-matrices are the same size
-      for ii = 1:numel(tmatrix)
-        tmatrix(ii).Nmax = [maxNmax1, maxNmax2];
-      end
-
-      % Apply translation to the beam
-      if ~isempty(p.Results.position)
-
-        % Requires scattered beam, convert if needed
-        if ~strcmpi(tmatrix(1).type, 'scattered')
-          maxNmax2 = min(maxNmax2, beam.Nmax);
-          for ii = 1:numel(tmatrix)
-            tmatrix(ii).type = 'scattered';
-            tmatrix(ii).Nmax = [maxNmax1, maxNmax2];
-          end
-        end
+    
 
 '''
 
