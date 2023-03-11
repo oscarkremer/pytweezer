@@ -93,8 +93,8 @@ class Beam:
                 maxNmax2 = max(maxNmax2, t.Nmax[1])
             # TODO: implement method for when t_matrix is an array of matrices
         else:
-            max_n_max1 = max(max_n_max1, t_matrix.n_max[0])
-            max_n_max2  = max(max_n_max2, t_matrix.n_max[1])
+            max_n_max1 = max(max_n_max1, t_matrix.get_n_max()[0])
+            max_n_max2  = max(max_n_max2, t_matrix.get_n_max()[1])
             if t_matrix.type == 'scattered' and not position.size:
                 max_n_max2 = min(max_n_max2, self.n_max)
             #make set nmax method for t_matrix

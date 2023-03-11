@@ -153,148 +153,69 @@ class TMatrix:
         n_max = np.array([nmax1, nmax2]).astype(int)
         return n_max    
     
-    def set_n_max(self, nmax):
-        return tmatrix.set_Nmax(nmax)
-
-'''
-    function tmatrix = set_Nmax(tmatrix, nmax, varargin)
-      % SET_NMAX resize the T-matrix, with additional options
-      %
-      % SET_NMAX(nmax) sets the T-matrix Nmax.  nmax should be a
-      % scarar or 2 element vector with row/column Nmax.
-      %
-      % SET_NMAX(..., 'tolerance', tol) use tol as the warning error
-      % level tolerance for resizing the beam.
-      %
-      % SET_NMAX(..., 'powerloss', mode) action to take if a power
-      % loss is detected.  Can be 'ignore', 'warn' or 'error'.
-
-      p = inputParser;
-      p.addParameter('tolerance', 1.0e-6);
-      p.addParameter('powerloss', 'warn');
-      p.parse(varargin{:});
-
-      % Convert the input to row/column sizes
-      if length(nmax) == 2
-        nmax1 = nmax(1);
-        nmax2 = nmax(2);
-      else
-        nmax1 = nmax(1);
-        nmax2 = nmax(1);
-      end
-
-      % Check if we need to do anything
-      if all([nmax1, nmax2] == tmatrix.Nmax)
-        return;
-      end
-
-      total_orders1 = ott.utils.combined_index(nmax1, nmax1);
-      total_orders2 = ott.utils.combined_index(nmax2, nmax2);
-
-      midpoint1 = size(tmatrix.data, 1)/2;
-      midpoint2 = size(tmatrix.data, 2)/2;
-
-      % The current resizing method only works for scattered fields
-      old_type = tmatrix.type;
-      if total_orders1 > midpoint1 || total_orders2 > midpoint2 ...
-          && strcmpi(old_type, 'total')
-        tmatrix.type = 'scattered';
-      end
-
-      % Split T-matrix into quadrants
-      A11 = tmatrix.data(1:midpoint1, 1:midpoint2);
-      A12 = tmatrix.data(1:midpoint1, (midpoint2+1):end);
-      A21 = tmatrix.data((midpoint1+1):end, 1:midpoint2);
-      A22 = tmatrix.data((midpoint1+1):end, (midpoint2+1):end);
-
-      % Resize rows
-      if total_orders1 > midpoint1
-
-        [row_index,col_index,a] = find(A11);
-        A11 = sparse(row_index,col_index,a,total_orders1,midpoint2);
-
-        [row_index,col_index,a] = find(A12);
-        A12 = sparse(row_index,col_index,a,total_orders1,midpoint2);
-
-        [row_index,col_index,a] = find(A21);
-        A21 = sparse(row_index,col_index,a,total_orders1,midpoint2);
-
-        [row_index,col_index,a] = find(A22);
-        A22 = sparse(row_index,col_index,a,total_orders1,midpoint2);
-
-      elseif total_orders1 < midpoint1
-
-        A11 = A11(1:total_orders1, :);
-        A12 = A12(1:total_orders1, :);
-        A21 = A21(1:total_orders1, :);
-        A22 = A22(1:total_orders1, :);
-
-      end
-
-      % Resize cols
-      if total_orders2 > midpoint2
-
-        [row_index,col_index,a] = find(A11);
-        A11 = sparse(row_index,col_index,a,total_orders1,total_orders2);
-
-        [row_index,col_index,a] = find(A12);
-        A12 = sparse(row_index,col_index,a,total_orders1,total_orders2);
-
-        [row_index,col_index,a] = find(A21);
-        A21 = sparse(row_index,col_index,a,total_orders1,total_orders2);
-
-        [row_index,col_index,a] = find(A22);
-        A22 = sparse(row_index,col_index,a,total_orders1,total_orders2);
-
-      elseif total_orders2 < midpoint2
-
-        A11 = A11(:, 1:total_orders2);
-        A12 = A12(:, 1:total_orders2);
-        A21 = A21(:, 1:total_orders2);
-        A22 = A22(:, 1:total_orders2);
-
-      end
-
-      if total_orders1 < midpoint1 || total_orders2 < midpoint2
-        magA = full(sum(sum(abs(tmatrix.data).^2)));
-      end
-
-      % Recombined T-matrix from quadrants
-      tmatrix.data = [ A11 A12; A21 A22 ];
-
-      if total_orders1 < midpoint1 || total_orders2 < midpoint2
-        magB = full(sum(sum(abs(tmatrix.data).^2)));
-        apparent_error = abs( magA - magB )/magA;
-
-        if apparent_error > p.Results.tolerance
-          if strcmpi(p.Results.powerloss, 'warn')
-            ott.warning('ott:Tmatrix:setNmax:truncation', ...
-                ['Apparent error of ' num2str(apparent_error)]);
-          elseif strcmpi(p.Results.powerloss, 'error')
-            error('ott:Tmatrix:setNmax:truncation', ...
-                ['Apparent error of ' num2str(apparent_error)]);
-          elseif strcmpi(p.Results.powerloss, 'ignore')
-            % Nothing to do
-          else
-            error('Unrecognized option for powerloss');
-          end
-        end
-      end
-
-      % If we were originally total field, convert back
-      tmatrix.type = old_type;
-    end
-
-    function type = get.type(tmatrix)
-      % Get the T-matrix type
-      type = tmatrix.type_;
-    end
-
-    function tmatrix = set.type(tmatrix, type)
-      % Set the T-matrix type, converting if needed
-      tmatrix = tmatrix.set_type(type);
-    end
-'''
+    def set_n_max(self, n_max, tolerance=1e-6, powerloss='warn'):
+        if n_max.size == 2:
+            nmax1 = nmax[0]
+            nmax2 = nmax[1]
+        else:
+            nmax1 = nmax[0]
+            nmax2 = nmax[0]
+        if not all(np.array(nmax1, nmax2) == self.get_nmax):
+            total_orders1 = combined_index(nmax1, nmax1)[0]
+            total_orders2 = combined_index(nmax2, nmax2)[0]
+            midpoint1, midpoint2 = self.T.shape[0]/2
+            old_type = tmatrix.type
+            if total_orders1 > midpoint1 or total_orders2 > midpoint2 and old_type=='total':
+                self.set_type('scattered')
+            A11 = self.T[:midpoint1, :midpoint2]
+            A12 = self.T[:midpoint1, midpoint2:]
+            A21 = self.T[midpoint:, :midpoint2]
+            A22 = self.T[midpoint:end,  midpoint:]
+            if total_orders1 > midpoint1:
+                row_index, col_index, a = find(A11)
+                A11 = sparse(row_index,col_index,a,total_orders1,midpoint2)
+                row_index, col_index, a = find(A12)
+                A12 = sparse(row_index,col_index,a,total_orders1,midpoint2)
+                row_index, col_index, a = find(A21)
+                A21 = sparse(row_index,col_index,a,total_orders1,midpoint2)
+                [row_index,col_index,a] = find(A22);
+                A22 = sparse(row_index,col_index,a,total_orders1,midpoint2);
+            elif total_orders1 < midpoint1:
+                A11 = A11[1:total_orders1, :]
+                A12 = A12[1:total_orders1, :]
+                A21 = A21[1:total_orders1, :]
+                A22 = A22[1:total_orders1, :]
+            if total_orders2 > midpoint2:
+                [row_index,col_index,a] = find(A11);
+                A11 = sparse(row_index,col_index,a,total_orders1,total_orders2);
+                [row_index,col_index,a] = find(A12);
+                A12 = sparse(row_index,col_index,a,total_orders1,total_orders2);
+                [row_index,col_index,a] = find(A21);
+                A21 = sparse(row_index,col_index,a,total_orders1,total_orders2);
+                [row_index,col_index,a] = find(A22);
+                A22 = sparse(row_index,col_index,a,total_orders1,total_orders2);
+            elif total_orders2 < midpoint2:
+                A11 = A11[:, 1:total_orders2]
+                A12 = A12[:, 1:total_orders2]
+                A21 = A21[:, 1:total_orders2]
+                A22 = A22[:, 1:total_orders2]
+            if total_orders1 < midpoint1 or total_orders2 < midpoint2:
+                magA = np.power(np.abs(self.T), 2).sum()
+            tmatrix.T = np.array([[A11, A12], [A21, A22]])
+            if total_orders1 < midpoint1 or total_orders2 < midpoint2:
+                magA = np.power(np.abs(self.T), 2).sum()
+                apparent_error = abs( magA - magB )/magA
+                if apparent_error > tolerance
+                    if power_loss == 'warn'
+                        warnings.warn('ott:Tmatrix:setNmax:truncation')
+                    elif power_loss == 'error':
+                        raise ValueError('ott:Tmatrix:setNmax:truncation')
+                    elif power_loss=='ignore':
+                        pass
+                    else:
+                        raise ValueError('Unrecognized option for powerloss')
+        self.set_type(old_type)
+        
 
 
 '''
