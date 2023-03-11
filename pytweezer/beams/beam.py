@@ -1,6 +1,6 @@
 import warnings
 import numpy as np
-from pytweezer.utils import combined_index, translate_z
+from pytweezer.utils import combined_index, translate_z, xyz2rtp
 from .translation import translate_xyz
 from scipy.sparse import csr_matrix
 from copy import copy

@@ -1,6 +1,6 @@
 import numpy as np
 from copy import copy
-from pytweezer.utils import translate_z as translation
+from pytweezer.utils import translate_z as translation, xyz2rtp
 
 def translate(beam, A, B):
     AB = np.block([[A, B], [B, A]])
@@ -30,7 +30,11 @@ def _translate_z_(beam, z=0):
     return beam, A, B
 
 def translate_xyz(beam, position, n_max=100):
-    rtp = xyz2rtp(xyz.T).T
+    if len(position.shape)==2:
+        position = position.T
+        rtp = xyz2rtp(x=position[:,0],y=position[:,1], z=position[:,2]).T
+    elif len(position.shape) == 1:
+        rtp = xyz2rtp(x=position[0],y=position[1], z=position[2]).T
     return translate_rtp(beam, rtp, n_max=n_max)[0]
     
 def translate_rtp(beam, position, n_max=100):

@@ -155,14 +155,14 @@ class TMatrix:
     
     def set_n_max(self, n_max, tolerance=1e-6, powerloss='warn'):
         if n_max.size == 2:
-            nmax1 = nmax[0]
-            nmax2 = nmax[1]
+            n_max1, n_max2 = n_max
         else:
-            nmax1 = nmax[0]
-            nmax2 = nmax[0]
-        if not all(np.array(nmax1, nmax2) == self.get_nmax):
-            total_orders1 = combined_index(nmax1, nmax1)[0]
-            total_orders2 = combined_index(nmax2, nmax2)[0]
+            n_max1 = n_max[0]
+            n_max2 = n_max[0]
+        print(n_max)
+        if not all(np.array(n_max1, n_max2) == self.get_n_max()):
+            total_orders1 = combined_index(n_max1, n_max1)[0]
+            total_orders2 = combined_index(n_max2, n_max2)[0]
             midpoint1, midpoint2 = self.T.shape[0]/2
             old_type = tmatrix.type
             if total_orders1 > midpoint1 or total_orders2 > midpoint2 and old_type=='total':
@@ -205,8 +205,8 @@ class TMatrix:
             if total_orders1 < midpoint1 or total_orders2 < midpoint2:
                 magA = np.power(np.abs(self.T), 2).sum()
                 apparent_error = abs( magA - magB )/magA
-                if apparent_error > tolerance
-                    if power_loss == 'warn'
+                if apparent_error > tolerance:
+                    if power_loss == 'warn':
                         warnings.warn('ott:Tmatrix:setNmax:truncation')
                     elif power_loss == 'error':
                         raise ValueError('ott:Tmatrix:setNmax:truncation')
@@ -214,7 +214,7 @@ class TMatrix:
                         pass
                     else:
                         raise ValueError('Unrecognized option for powerloss')
-        self.set_type(old_type)
+            self.set_type(old_type)
         
 
 
