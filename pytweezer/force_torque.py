@@ -18,21 +18,26 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
         n_beams = ibeam.n_beams
         if coherent:
             n_beams = 1
-        f = np.zeros((3*T.T.shape, n_locations, nbeams))
-        t = np.zeros((3*T.T.shape, n_locations, nbeams))
-        s = np.zeros((3*T.T.shape, n_locations, nbeams))
-        for i in range(1, n_locations+1):
+        f = np.zeros((3*T.T.size, n_locations, n_beams))
+        t = np.zeros((3*T.T.size, n_locations, n_beams))
+        s = np.zeros((3*T.T.size, n_locations, n_beams))
+        for i in range(n_locations):
             if position.size:
                 if n_positions == 1:
                     aux_position = position
                 else:
                     aux_position = position[:,i]
+            else:
+                aux_position = np.array([[],[],[]])
             if rotation.size:
                 if n_rotations == 1:
                     aux_rotation = rotation
                 else:
                     aux_rotation = rotation[:,i]
+            else:
+                aux_rotation = np.array([[],[],[]])
             print('computing scatter')
+            print(aux_position)
             sbeam, tbeam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
             if coherent:
                 sbeam = sbeam.mergeBeams()

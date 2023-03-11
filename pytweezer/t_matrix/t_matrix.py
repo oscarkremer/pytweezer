@@ -1,5 +1,6 @@
 import numpy as np
 from pytweezer.shapes import *
+from pytweezer.utils import combined_index
 
 class TMatrix:
     def __init__(self):
@@ -146,21 +147,16 @@ class TMatrix:
                     raise ValueError('No known conversion')
         self.type = new_type
 
+    def get_n_max(self):
+        nmax1, _ = combined_index(self.T.shape[0]/2)
+        nmax2, _ = combined_index(self.T.shape[1]/2)
+        n_max = np.array([nmax1, nmax2]).astype(int)
+        return n_max    
+    
+    def set_n_max(self, nmax):
+        return tmatrix.set_Nmax(nmax)
+
 '''
-    function nmax = get.Nmax(tmatrix)
-      %get.Nmax calculate Nmax from the current T-matrix data
-      nmax1 = ott.utils.combined_index(size(tmatrix.data, 1)/2);
-      nmax2 = ott.utils.combined_index(size(tmatrix.data, 2)/2);
-
-      % Support non-square T-matrices
-      nmax = [nmax1 nmax2];
-    end
-
-    function tmatrix = set.Nmax(tmatrix, nmax)
-      %set.Nmax resizes the T-matrix
-      tmatrix = tmatrix.set_Nmax(nmax);
-    end
-
     function tmatrix = set_Nmax(tmatrix, nmax, varargin)
       % SET_NMAX resize the T-matrix, with additional options
       %

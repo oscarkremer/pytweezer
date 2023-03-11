@@ -24,5 +24,6 @@ start = time.time()
 beam = Gaussian(power=1.0, na=NA, polarization=np.array([1, 1j]), index_m=n_medium, lambda_0=wavelength0)
 end = time.time()
 print(f'time consumed - {end-start}')
+print(T.get_n_max())
 z = np.array([[0],[0],[1]])*np.linspace(-8,8,80)*wavelength_medium
 fz = force_torque(beam, T, position=z)

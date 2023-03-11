@@ -42,7 +42,7 @@ class TMatrixMie(TMatrix):
                 n_max = max(100, n_max)
             self.T = self.tmatrix_mie_layered(n_max, parameters['internal'])
             if parameters['shrink']:
-                self.n_max = old_nmax
+                self._n_max_ = old_nmax
 
     def input_parser(self, **kwargs):
         if not kwargs.get('n_max'):
