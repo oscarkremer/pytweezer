@@ -87,12 +87,14 @@ class Beam:
         max_n_max1 = 0
         max_n_max2 = 0
         t_type = t_matrix.type
+        print('here')
         if isinstance(t_matrix, np.ndarray):
             for t in t_matrix:
                 maxNmax1 = max(maxNmax1, t.Nmax[0])
                 maxNmax2 = max(maxNmax2, t.Nmax[1])
             # TODO: implement method for when t_matrix is an array of matrices
         else:
+
             max_n_max1 = max(max_n_max1, t_matrix.get_n_max()[0])
             max_n_max2  = max(max_n_max2, t_matrix.get_n_max()[1])
             if t_matrix.type == 'scattered' and not position.size:
@@ -104,6 +106,7 @@ class Beam:
                     max_n_max2 = min(max_n_max2, self.n_max)
                     t_matrix.set_type('scattered')
                     t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
+                #checked until here
                 rbeam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
             if rotation.size:                            
                 r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)

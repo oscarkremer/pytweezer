@@ -159,12 +159,13 @@ class TMatrix:
         else:
             n_max1 = n_max[0]
             n_max2 = n_max[0]
-        print(n_max)
         if not all(np.array(n_max1, n_max2) == self.get_n_max()):
             total_orders1 = combined_index(n_max1, n_max1)[0]
             total_orders2 = combined_index(n_max2, n_max2)[0]
             midpoint1, midpoint2 = self.T.shape[0]/2
             old_type = tmatrix.type
+            print('inside set_n_max')
+            print(total_orders1, total_orders2)
             if total_orders1 > midpoint1 or total_orders2 > midpoint2 and old_type=='total':
                 self.set_type('scattered')
             A11 = self.T[:midpoint1, :midpoint2]
