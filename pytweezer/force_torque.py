@@ -32,6 +32,7 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
                     aux_rotation = rotation
                 else:
                     aux_rotation = rotation[:,i]
+            print('computing scatter')
             sbeam, tbeam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
             if coherent:
                 sbeam = sbeam.mergeBeams()

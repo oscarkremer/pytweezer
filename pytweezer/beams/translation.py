@@ -29,6 +29,35 @@ def _translate_z_(beam, z=0):
         beam.beam_basis = 'regular'
     return beam, A, B
 
+def translate_xyz(beam, position, n_max=100):
+    rtp = xyz2rtp(xyz.T).T
+    return translate_rtp(beam, rtp, n_max=n_max)[0]
+    
+def translate_rtp(beam, position, n_max=100):
+    if n_max.size == 1:
+        o_n_max = n_max
+    elif n_max.size == 2:
+        o_n_max = n_max[1]
+    else:
+        raise ValueError('Nmax must be 2 element vector or scalar');
+    r = position[0, :]
+    theta = position[1, :]
+    phi = position[2, :]
+    if any((theta != 0 and abs(theta) != np.pi) or phi != 0):
+        for i in range(r.size):
+            tbeam, D = rotate_yz(beam, theta[i], phi[i], n_max= max(o_n_max, beam.n_max))
+            tbeam, A, B = tbeam.translate_z(r[i], 'Nmax', oNmax)
+            beam = beam.append(rotate(wigner=D))
+    else:
+        dnmax = max(oNmax, beam.Nmax)
+        D = speye(combined_index(dnmax, dnmax))
+        idx = abs(theta) == np.pi
+        r[idx] = -r[idx]
+        if r.size == 1:
+            beam, A, B = translate_z(r, 'Nmax', oNmax);
+        else:
+            beam = beam.translate_z(beam, r, 'Nmax', oNmax);
+        return beam, A, B, D
 
 def translate_z(beam, z, n_max=None):
     if beam.translation_method == 'default':        

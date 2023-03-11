@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from pytweezer.utils import combined_index, translate_z
+from .translation import translate_xyz
 from scipy.sparse import csr_matrix
 from copy import copy
 
@@ -81,7 +82,7 @@ class Beam:
                 self.b = new_beam.b 
                 self.n_max = i
                 break
-    '''
+
     def scatter(self, t_matrix, position=np.array([[],[],[]]), rotation=np.array([[],[],[]])):
         max_n_max1 = 0
         max_n_max2 = 0
@@ -103,53 +104,32 @@ class Beam:
                     max_n_max2 = min(max_n_max2, self.n_max)
                     t_matrix.set_type('scattered')
                     t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
-                self.translate_xyz(position, n_max=max_n_max2+1)
-            r_beam = copy(self)
+                rbeam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
             if rotation.size:                            
                 r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)
             if t_matrix.type == 'scattered':
                 rbeam = rbeam.set_n_max(maxNmax2, 'powerloss', 'ignore');
             else:
-                t_matrix.set_n_max(np.array([maxNmax1, rbeam.Nmax], 'powerloss', 'ignore')
+                t_matrix.set_n_max(np.array([maxNmax1, rbeam.Nmax]), 'powerloss', 'ignore')
                 if t_matrix.type == 'internal':
                     warnings.warn('ott:Bsc:scatter: It may be more optimal to use a scattered T-matrix');
+            sbeam = t_matrix.data*rbeam
+            if rotation.size:
+                sbeam = sbeam.rotate(np.linalg.inv(p.Results.rotation))
+            if t_matrix.type == 'total':
+                sbeam.type = 'total'
+                sbeam.basis = 'outgoing'
+            if t_matrix.type == 'total':
+                sbeam.type = 'scattered'
+                sbeam.basis = 'outgoing'
+            if t_matrix.type == 'total':
+                sbeam.type = 'internal'
+                sbeam.basis = 'regular'
+                sbeam.k_medium = tmatrix(1).k_particle
+            else:
+                raise ValueError('Unrecognized T-matrix type')
+            return sbeam
 
-      sbeam = ott.Bsc();
-      for ii = 1:numel(tmatrix)
-        sbeam = sbeam.append(tmatrix(ii).data * rbeam);
-      end
-
-      % Apply the inverse rotation
-      if ~isempty(p.Results.rotation)
-
-        % This seems to take a long time
-        %sbeam = sbeam.rotate('wigner', D');
-
-        sbeam = sbeam.rotate(inv(p.Results.rotation));
-      end
-
-      % Assign a type to the resulting beam
-      switch tmatrix(1).type
-        case 'total'
-          sbeam.type = 'total';
-          sbeam.basis = 'outgoing';
-          
-        case 'scattered'
-          sbeam.type = 'scattered';
-          sbeam.basis = 'outgoing';
-          
-        case 'internal'
-          sbeam.type = 'internal';
-          sbeam.basis = 'regular';
-        
-          % Wavelength has changed, update it
-          sbeam.k_medium = tmatrix(1).k_particle;
-          
-        otherwise
-          error('Unrecognized T-matrix type');
-      end
-    end
-    '''  
     def append(self, other):
         if self.n_beams == 1:
             # DANGER: Have to implement this section
