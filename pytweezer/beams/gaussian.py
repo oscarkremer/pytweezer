@@ -166,9 +166,9 @@ class Gaussian(PointMatch):
         new_beam = copy(self)*np.sqrt(power/(np.power(np.abs(self.a),2)+np.power(np.abs(self.b),2)).sum())
         self.a = new_beam.a
         self.b = new_beam.b
-        self.beam_type = 'incident'
-        self.beam_basis = 'regular'
-        self.n_beams = 1
+        self._type_ = 'incident'
+        self._basis_ = 'regular'
+        self._n_beams_ = 1
 
     def validate_beam_type(self, s):
         return True if s in ('lg', 'hg', 'ig') else False

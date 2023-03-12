@@ -15,7 +15,7 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
             raise ValueError('OTT:forcetorque:nlocations Number of positions/rotations should be equal or 1')
         n_locations = max(n_positions, n_rotations)
         T.set_type('scattered')   
-        n_beams = ibeam.n_beams
+        n_beams = ibeam.get_n_beams()
         if coherent:
             n_beams = 1
         f = np.zeros((3*T.T.size, n_locations, n_beams))
@@ -36,13 +36,11 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
                     aux_rotation = rotation[:,i]
             else:
                 aux_rotation = np.array([[],[],[]])
-            print('computing scatter')
-            print(aux_position)
-            sbeam, tbeam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
+            s_beam, t_beam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
             if coherent:
-                sbeam = sbeam.mergeBeams()
-                tbeam = tbeam.mergeBeams()
-            fl, tl, sl = _force_torque_(tbeam, sbeam)
+                sbeam = s_beam.merge_beams()
+                tbeam = t_beam.merge_beams()
+            fl, tl, sl = _force_torque_(t_beam, s_beam)
             f[:, i, :] = fl.reshape((3*T.size, 1, n_beams))
             t[:, i, :] = tl.reshape((3*T.size, 1, n_beams))
             z[:, i, :] = sl.reshape((3*T.size, 1, n_beams))
@@ -59,10 +57,9 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
         sy = s[2*np.arange(1, n_particles+1), :]
         sz = s[3*np.arange(1, n_particles+1), :]
         return fx, fy, fz, tx, ty, tz, sx, sy, sz
-'''  
+
 
 def _force_torque_():
-    % Check the number of beams in each input
     if ibeam.Nbeams ~= sbeam.Nbeams && ibeam.Nbeams ~= 1 && sbeam.Nbeams ~= 1
     error('Beam objects must contain same number of beams or 1 beam');
     end
@@ -177,4 +174,3 @@ def _force_torque_():
             sy=real(sxy);
             sx=imag(sxy);
     return fx,fy,fz,tx,ty,tz,sx,sy,sz
-'''

@@ -27,16 +27,15 @@ def _translate_z_(beam, z=0, n_max=None):
         for i in range(z.size):
             A, B = translate_z_type_helper(z[i], 
                 np.array([n_max, beam.get_n_max()]).astype(int), 
-                beam.beam_basis)
+                beam.get_basis())
             beam.append(translate(beam, A, B))
-            beam.beam_basis = 'regular'
+            beam.set_basis('regular')
     else:
-        print(z, beam.n_max, beam.beam_basis)
         A, B = translate_z_type_helper(z, 
             np.array([n_max, beam.get_n_max()]).astype(int), 
-            beam.beam_basis)
+            beam.get_basis())
         beam.append(translate(beam, A, B))
-        beam.beam_basis = 'regular'
+        beam.set_basis('regular')
 #        print(beam.a)
     return beam, A, B
 

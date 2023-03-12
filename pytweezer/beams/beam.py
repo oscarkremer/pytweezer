@@ -106,35 +106,61 @@ class Beam:
                     t_matrix.set_type('scattered')
                     t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
                 #checked until here
-                r_beam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
+                beam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
+            r_beam = copy(beam)
             if rotation.size:                            
                 r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)
             if t_matrix.type == 'scattered':
-                r_beam = r_beam.set_n_max(max_n_max2, power_loss='ignore')
+                r_beam.set_n_max(max_n_max2, power_loss='ignore')
             else:
                 t_matrix.set_n_max(np.array([max_n_max1, r_beam.n_max]), power_loss='ignore')
                 if t_matrix.type == 'internal':
                     warnings.warn('ott:Bsc:scatter: It may be more optimal to use a scattered T-matrix');
-            sbeam = t_matrix.data*rbeam
+            s_beam = t_matrix.T*r_beam
             if rotation.size:
-                sbeam = sbeam.rotate(np.linalg.inv(p.Results.rotation))
-            if t_matrix.type == 'total':
-                sbeam.type = 'total'
-                sbeam.basis = 'outgoing'
-            if t_matrix.type == 'total':
-                sbeam.type = 'scattered'
-                sbeam.basis = 'outgoing'
-            if t_matrix.type == 'total':
-                sbeam.type = 'internal'
-                sbeam.basis = 'regular'
-                sbeam.k_m = tmatrix.k_p
+                s_beam = s_beam.rotate(np.linalg.inv(p.Results.rotation))
+            elif t_matrix.type == 'total':
+                s_beam.type = 'total'
+                s_beam.basis = 'outgoing'
+            elif t_matrix.type == 'scattered':
+                s_beam.set_type('scattered')
+                s_beam.set_basis('outgoing') 
+            elif t_matrix.type == 'internal':
+                s_beam.set_type('internal')# = 'internal'
+                s_beam.set_basis('regular')
+                s_beam.k_m = tmatrix.k_p
+                return NotImplemented
             else:
                 raise ValueError('Unrecognized T-matrix type')
-            return sbeam
+            return s_beam, beam
+
+    def set_basis(self, basis):
+        if isinstance(basis, str):
+            if basis in ['incoming', 'outgoing', 'regular']:
+                self._basis_ = basis
+            else:
+                raise ValueError('Basis must be incoming, outgoing or regular')
+        else:
+            raise TypeError('Basis must be string type')
+
+    def set_type(self, beam_type):
+        if isinstance(beam_type, str):
+            if beam_type in ['incident', 'scattered', 'total', 'internal']:
+                self._type_ = beam_type
+            else:
+                raise ValueError('Beam type must be incident, scattered, total or internal')
+        else:
+            raise TypeError('Basis must be string type')
+
+    def get_basis(self):
+        return self._basis_
 
     def get_n_max(self):
         return combined_index(self.a.shape[0])[0]
         
+    def get_n_beams(self):
+        return self.a.shape[1]
+    
     def set_n_max(self, n_max, tolerance=1e-6, power_loss='warn'):
         total_orders = combined_index(n_max, n_max)
         if self.a.shape[0] > total_orders:
@@ -142,7 +168,6 @@ class Beam:
             bmagA = np.power(np.abs(self.b),2).sum()
             amagB = np.power(np.abs(self.a[:total_orders, :]),2).sum()
             bmagB = np.power(np.abs(self.b[:total_orders, :]),2).sum()
-            print(amagA, bmagA, amagB, bmagB)
             if not power_loss == 'ignore':
                 aapparent_error = abs( amagA - amagB )/amagA
                 bapparent_error = abs( bmagA - bmagB )/bmagA
@@ -156,6 +181,9 @@ class Beam:
                 else:
                     self.a = self.a[:total_orders, :]
                     self.b = self.b[:total_orders, :]
+            else:
+                self.a = self.a[:total_orders, :]
+                self.b = self.b[:total_orders, :]
         elif self.a.shape[0] < total_orders:
             arow_index, acol_index, aa = find(beam.a)
             brow_index, bcol_index, ba = find(beam.b)
@@ -163,7 +191,7 @@ class Beam:
             beam.b = sparse(brow_index,bcol_index,ba,total_orders,beam.Nbeams);
 
     def append(self, other):
-        if self.n_beams == 1:
+        if self._n_beams_ == 1:
             # DANGER: Have to implement this section
             self.a = other.a
             self.b = other.b
@@ -180,14 +208,14 @@ class Beam:
             self.b = other*self.b
             return self
         elif isinstance(other, np.ndarray):
-            if other.shape[0] == 2*self.a.shape[0]:
+            if other.shape[1] == 2*self.a.shape[0]:
                 ab = np.matmul(other, np.concatenate([self.a, self.b]))
                 self.a = ab[:int(ab.shape[0]/2),:]
                 self.b = ab[int(ab.shape[0]/2):,:]
                 return self
         elif isinstance(other, complex):
             if hasattr(other, '__iter__'):
-                if other.shape[0] == 2*self.a.shape[0]:
+                if other.shape[1] == 2*self.a.shape[0]:
                     ab = other*np.concatenate([self.a, self.b])
                     return self
         else:
@@ -200,14 +228,14 @@ class Beam:
             self.b = other*self.b
             return self
         elif isinstance(other, np.ndarray):
-            if other.shape[0] == 2*self.a.shape[0]:
+            if other.shape[1] == 2*self.a.shape[0]:
                 ab = np.matmul(other, np.concatenate([self.a, self.b]))
                 self.a = ab[:int(ab.shape[0]/2),:]
                 self.b = ab[int(ab.shape[0]/2):,:]
                 return self
         elif isinstance(other, complex):
             if hasattr(other, '__iter__'):
-                if other.shape[0] == 2*self.a.shape[0]:
+                if other.shape[1] == 2*self.a.shape[0]:
                     ab = np.matmul(other, np.concatenate([self.a, self.b]))
                     self.a = ab[:int(ab.shape[0]/2),:]
                     self.b = ab[int(ab.shape[0]/2):,:]
@@ -972,27 +1000,6 @@ class Beam:
       speed = beam.omega / beam.k_medium;
     end
 
-    function beam = set.basis(beam, basis)
-      % Set the beam type, checking it is a valid type first
-      if ~any(strcmpi(basis, {'incoming', 'outgoing', 'regular'}))
-        error('OTT:Bsc:set_basis:invalid_value', 'Invalid beam basis');
-      end
-      beam.basis = basis;
-    end
-
-    function beam = set.type(beam, type)
-      % Set the beam type, checking it is a valid type first
-      if ~any(strcmpi(type, {'incident', 'scattered', 'total', 'internal'}))
-        error('OTT:Bsc:set_type:invalid_value', 'Invalid beam type');
-      end
-      beam.type = type;
-    end
-
-    function nbeams = get.Nbeams(beam)
-      % get.beams get the number of beams in this object
-      nbeams = size(beam.a, 2);
-    end
-
     function bsc = beam(bsc, idx)
       % BEAM get beams from a beam array object
       %
@@ -1160,10 +1167,7 @@ class Beam:
         n = [n; m];
       end
     end
-'''
 
-
-'''
     def divide(self, scalar):
         self.a = self.a/scalar
         self.b = self.b/scalar
