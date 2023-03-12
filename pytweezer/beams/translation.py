@@ -1,12 +1,14 @@
 import numpy as np
 from copy import copy
-from pytweezer.utils import translate_z as translation, xyz2rtp
+from pytweezer.utils import translate_z as translation, combined_index, xyz2rtp
 
 def translate(beam, A, B):
     AB = np.block([[A, B], [B, A]])
     return copy(beam)*AB
 
-def _translate_z_(beam, z=0):
+def _translate_z_(beam, z=0, n_max=None):
+    if not n_max:
+        n_max = beam.get_n_max()
     def translate_z_type_helper(z, n_max, basis):
         if basis == 'incoming':
             translation_type = 'sbesselh2';
@@ -16,17 +18,26 @@ def _translate_z_(beam, z=0):
             translation_type = 'sbesselj'
         A, B, _ = translation(n_max, z, function_type=translation_type)
         return A, B
+    if isinstance(z, np.ndarray):
+        z = z[0] if z.size == 1 else z
+    
     beam.dz = beam.dz + np.abs(z)
     z = z * beam.k_m / 2 / np.pi
     if isinstance(z, np.ndarray):
-        for i in range(1, z.size+1):
-            A, B = translate_z_type_helper(z[i], beam.n_max)
+        for i in range(z.size):
+            A, B = translate_z_type_helper(z[i], 
+                np.array([n_max, beam.get_n_max()]).astype(int), 
+                beam.beam_basis)
             beam.append(translate(beam, A, B))
             beam.beam_basis = 'regular'
     else:
-        A, B = translate_z_type_helper(z, beam.n_max, beam.beam_basis)
+        print(z, beam.n_max, beam.beam_basis)
+        A, B = translate_z_type_helper(z, 
+            np.array([n_max, beam.get_n_max()]).astype(int), 
+            beam.beam_basis)
         beam.append(translate(beam, A, B))
         beam.beam_basis = 'regular'
+#        print(beam.a)
     return beam, A, B
 
 def translate_xyz(beam, position, n_max=100):
@@ -34,10 +45,12 @@ def translate_xyz(beam, position, n_max=100):
         position = position.T
         rtp = xyz2rtp(x=position[:,0],y=position[:,1], z=position[:,2]).T
     elif len(position.shape) == 1:
-        rtp = xyz2rtp(x=position[0],y=position[1], z=position[2]).T
+        r, t, p = xyz2rtp(x=position[0],y=position[1], z=position[2])
+        rtp = np.array([[r, t, p]]).T
     return translate_rtp(beam, rtp, n_max=n_max)[0]
     
 def translate_rtp(beam, position, n_max=100):
+
     if n_max.size == 1:
         o_n_max = n_max
     elif n_max.size == 2:
@@ -50,22 +63,22 @@ def translate_rtp(beam, position, n_max=100):
     if any((theta != 0 and abs(theta) != np.pi) or phi != 0):
         for i in range(r.size):
             tbeam, D = rotate_yz(beam, theta[i], phi[i], n_max= max(o_n_max, beam.n_max))
-            tbeam, A, B = tbeam.translate_z(r[i], 'Nmax', oNmax)
+            tbeam, A, B = tbeam.translate_z(r[i], 'Nmax', o_n_max)
             beam = beam.append(rotate(wigner=D))
     else:
-        dnmax = max(oNmax, beam.Nmax)
-        D = speye(combined_index(dnmax, dnmax))
+        d_n_max = max(o_n_max, beam.n_max)
+        D = np.eye(combined_index(d_n_max, d_n_max))
         idx = abs(theta) == np.pi
         r[idx] = -r[idx]
         if r.size == 1:
-            beam, A, B = translate_z(r, 'Nmax', oNmax);
+            beam, A, B = translate_z(beam, r, n_max=o_n_max)
         else:
-            beam = beam.translate_z(beam, r, 'Nmax', oNmax);
+            beam, A, B = translate_z(beam, r, n_max=o_n_max)
         return beam, A, B, D
 
 def translate_z(beam, z, n_max=None):
     if beam.translation_method == 'default':        
-        beam, A, B = _translate_z_(beam, z=z)
+        beam, A, B = _translate_z_(beam, z=z, n_max=n_max)
         return beam, A, B
     elif beam.translation_method == 'new_beam_offset':
         if not kwargs.get('z'):

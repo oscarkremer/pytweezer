@@ -87,7 +87,6 @@ class Beam:
         max_n_max1 = 0
         max_n_max2 = 0
         t_type = t_matrix.type
-        print('here')
         if isinstance(t_matrix, np.ndarray):
             for t in t_matrix:
                 maxNmax1 = max(maxNmax1, t.Nmax[0])
@@ -107,13 +106,13 @@ class Beam:
                     t_matrix.set_type('scattered')
                     t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
                 #checked until here
-                rbeam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
+                r_beam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
             if rotation.size:                            
                 r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)
             if t_matrix.type == 'scattered':
-                rbeam = rbeam.set_n_max(maxNmax2, 'powerloss', 'ignore');
+                r_beam = r_beam.set_n_max(max_n_max2, power_loss='ignore')
             else:
-                t_matrix.set_n_max(np.array([maxNmax1, rbeam.Nmax]), 'powerloss', 'ignore')
+                t_matrix.set_n_max(np.array([max_n_max1, r_beam.n_max]), power_loss='ignore')
                 if t_matrix.type == 'internal':
                     warnings.warn('ott:Bsc:scatter: It may be more optimal to use a scattered T-matrix');
             sbeam = t_matrix.data*rbeam
@@ -128,10 +127,40 @@ class Beam:
             if t_matrix.type == 'total':
                 sbeam.type = 'internal'
                 sbeam.basis = 'regular'
-                sbeam.k_medium = tmatrix(1).k_particle
+                sbeam.k_m = tmatrix.k_p
             else:
                 raise ValueError('Unrecognized T-matrix type')
             return sbeam
+
+    def get_n_max(self):
+        return combined_index(self.a.shape[0])[0]
+        
+    def set_n_max(self, n_max, tolerance=1e-6, power_loss='warn'):
+        total_orders = combined_index(n_max, n_max)
+        if self.a.shape[0] > total_orders:
+            amagA = np.power(np.abs(self.a),2).sum()
+            bmagA = np.power(np.abs(self.b),2).sum()
+            amagB = np.power(np.abs(self.a[:total_orders, :]),2).sum()
+            bmagB = np.power(np.abs(self.b[:total_orders, :]),2).sum()
+            print(amagA, bmagA, amagB, bmagB)
+            if not power_loss == 'ignore':
+                aapparent_error = abs( amagA - amagB )/amagA
+                bapparent_error = abs( bmagA - bmagB )/bmagA
+                if aapparent_error > tolerance or bapparent_error > tolerance:
+                    if power_loss == 'warn':
+                        warnings.warn('ott:Bsc:setNmax:truncation')
+                    elif power_loss=='error':
+                        raise ValueError('Truncation error during order reduction')
+                    else:
+                        raise ValueError('Power loss variable should be: ignore, warn or error')
+                else:
+                    self.a = self.a[:total_orders, :]
+                    self.b = self.b[:total_orders, :]
+        elif self.a.shape[0] < total_orders:
+            arow_index, acol_index, aa = find(beam.a)
+            brow_index, bcol_index, ba = find(beam.b)
+            beam.a = sparse(arow_index,acol_index,aa,total_orders,beam.Nbeams);
+            beam.b = sparse(brow_index,bcol_index,ba,total_orders,beam.Nbeams);
 
     def append(self, other):
         if self.n_beams == 1:
@@ -145,6 +174,7 @@ class Beam:
             self.b = np.concatenate([self.b, other.b])
 
     def __mul__(self, other):
+        print(other.shape, self.a.shape)
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
@@ -971,222 +1001,6 @@ class Beam:
       bsc.b = bsc.b(:, idx);
     end
 
-    function nmax = get.Nmax(beam)
-      %get.Nmax calculates Nmax from the current size of the beam coefficients
-      nmax = ott.utils.combined_index(size(beam.a, 1));
-    end
-
-    function beam = set.Nmax(beam, nmax)
-      %set.Nmax resizes the beam vectors
-      beam = beam.set_Nmax(nmax);
-    end
-
-    function beam = set_Nmax(beam, nmax, varargin)
-      p = inputParser;
-      p.addParameter('tolerance', 1.0e-6);
-      p.addParameter('powerloss', 'warn');
-      p.parse(varargin{:});
-
-      total_orders = ott.utils.combined_index(nmax, nmax);
-      if size(beam.a, 1) > total_orders
-
-        amagA = full(sum(sum(abs(beam.a).^2)));
-        bmagA = full(sum(sum(abs(beam.b).^2)));
-
-        beam.a = beam.a(1:total_orders, :);
-        beam.b = beam.b(1:total_orders, :);
-
-        amagB = full(sum(sum(abs(beam.a).^2)));
-        bmagB = full(sum(sum(abs(beam.b).^2)));
-
-        if ~strcmpi(p.Results.powerloss, 'ignore')
-
-          aapparent_error = abs( amagA - amagB )/amagA;
-          bapparent_error = abs( bmagA - bmagB )/bmagA;
-
-          if aapparent_error > p.Results.tolerance || ...
-              bapparent_error > p.Results.tolerance
-            if strcmpi(p.Results.powerloss, 'warn')
-              warning('ott:Bsc:setNmax:truncation', ...
-                  ['Apparent errors of ' num2str(aapparent_error) ...
-                      ', ' num2str(bapparent_error) ]);
-            elseif strcmpi(p.Results.powerloss, 'error')
-              error('ott:Bsc:setNmax:truncation', ...
-                  ['Apparent errors of ' num2str(aapparent_error) ...
-                      ', ' num2str(bapparent_error) ]);
-            else
-              error('ott:Bsc:setNmax:truncation', ...
-                'powerloss should be one of ignore, warn or error');
-            end
-          end
-        end
-      elseif size(beam.a, 1) < total_orders
-        [arow_index,acol_index,aa] = find(beam.a);
-        [brow_index,bcol_index,ba] = find(beam.b);
-        beam.a = sparse(arow_index,acol_index,aa,total_orders,beam.Nbeams);
-        beam.b = sparse(brow_index,bcol_index,ba,total_orders,beam.Nbeams);
-      end
-    end
-
-    function beam = translate(beam, A, B)
-      % TRANSLATE apply a translation using given translation matrices.
-      %
-      % TRANSLATE(A, B) applies the translation given by A, B.
-      beam = [ A B ; B A ] * beam;
-    end
-
-    function [beam, A, B] = translateZ(beam, varargin)
-      p = inputParser;
-      p.addOptional('z', []);
-      p.addParameter('Nmax', beam.Nmax);
-      p.parse(varargin{:});
-
-      if nargout ~= 1 && numel(p.Results.z) > 1
-        error('Multiple output with multiple translations not supported');
-      end
-
-      if ~isempty(p.Results.z)
-        z = p.Results.z;
-
-        % Add a warning when the beam is translated outside nmax2ka(Nmax) 
-        % The first time may be OK, the second time does not have enough
-        % information.
-        if beam.dz > ott.utils.nmax2ka(beam.Nmax)/beam.k_medium
-          warning('ott:Bsc:translateZ:outside_nmax', ...
-              'Repeated translation of beam outside Nmax region');
-        end
-        beam.dz = beam.dz + abs(z);
-
-        % Convert to beam units
-        z = z * beam.k_medium / 2 / pi;
-
-        ibeam = beam;
-        beam = ott.Bsc();
-
-        for ii = 1:numel(z)
-          [A, B] = ibeam.translateZ_type_helper(z(ii), [p.Results.Nmax, ibeam.Nmax]);
-          beam = beam.append(ibeam.translate(A, B));
-          beam.basis = 'regular';
-        end
-      else
-        error('Wrong number of arguments');
-      end
-
-      % Pack the rotated matricies into a single ABBA object
-      if nargout == 2
-        A = [ A B ; B A ];
-      end
-    end
-
-    function varargout = translateXyz(beam, varargin)
-      p = inputParser;
-      p.addOptional('opt1', []);    % xyz or Az
-      p.addOptional('opt2', []);    % [] or Bz
-      p.addOptional('opt3', []);    % [] or D
-      p.addParameter('Nmax', beam.Nmax);
-      p.parse(varargin{:});
-
-      if ~isempty(p.Results.opt1) && isempty(p.Results.opt2) ...
-          && isempty(p.Results.opt3)
-        xyz = p.Results.opt1;
-        rtp = ott.utils.xyz2rtp(xyz.').';
-        [varargout{1:nargout}] = beam.translateRtp(rtp, ...
-            'Nmax', p.Results.Nmax);
-      else
-        [varargout{1:nargout}] = beam.translateRtp(varargin{:});
-      end
-    end
-
-    function [beam, A, B, D] = translateRtp(beam, varargin)
-      p = inputParser;
-      p.addOptional('opt1', []);    % rtp or Az
-      p.addOptional('opt2', []);    % [] or Bz
-      p.addOptional('opt3', []);    % [] or D
-      p.addParameter('Nmax', beam.Nmax);
-      p.parse(varargin{:});
-
-      % Convert Nmax to a single number
-      if numel(p.Results.Nmax) == 1
-        oNmax = p.Results.Nmax;
-      elseif numel(p.Results.Nmax) == 2
-        oNmax = p.Results.Nmax(2);
-      else
-        error('Nmax must be 2 element vector or scalar');
-      end
-
-      % Handle input arguments
-      if ~isempty(p.Results.opt1) && isempty(p.Results.opt2) ...
-          && isempty(p.Results.opt3)
-
-        % Assume first argument is rtp coordinates
-        r = p.Results.opt1(1, :);
-        theta = p.Results.opt1(2, :);
-        phi = p.Results.opt1(3, :);
-
-      elseif ~isempty(p.Results.opt1) && ~isempty(p.Results.opt2) ...
-          && ~isempty(p.Results.opt3)
-
-        % Rotation/translation is already computed, apply it
-        A = p.Results.opt1;
-        B = p.Results.opt2;
-        D = p.Results.opt3;
-        beam = beam.rotate('wigner', D);
-        beam = beam.translate(A, B);
-        beam = beam.rotate('wigner', D');
-        return;
-      else
-        error('Not enough input arguments');
-      end
-
-      if numel(r) ~= 1 && nargout ~= 1
-        error('Multiple output with multiple translations not supported');
-      end
-
-      % Only do the rotation if we need it
-      if any((theta ~= 0 & abs(theta) ~= pi) | phi ~= 0)
-
-        ibeam = beam;
-        beam = ott.Bsc();
-
-        for ii = 1:numel(r)
-          [tbeam, D] = ibeam.rotateYz(theta(ii), phi(ii), ...
-              'Nmax', max(oNmax, ibeam.Nmax));
-          [tbeam, A, B] = tbeam.translateZ(r(ii), 'Nmax', oNmax);
-          beam = beam.append(tbeam.rotate('wigner', D'));
-        end
-      else
-        dnmax = max(oNmax, beam.Nmax);
-        D = speye(ott.utils.combined_index(dnmax, dnmax));
-
-        % Replace rotations by 180 with negative translations
-        idx = abs(theta) == pi;
-        r(idx) = -r(idx);
-
-        if numel(r) == 1
-          [beam, A, B] = beam.translateZ(r, 'Nmax', oNmax);
-        else
-          beam = beam.translateZ(r, 'Nmax', oNmax);
-        end
-      end
-
-      % Rotate the translation matricies
-      if nargout == 3 || nargout == 2
-
-        % The beam might change size, so readjust D to match
-        sz = size(A, 1);
-        D2 = D(1:sz, 1:sz);
-
-        A = D2' * A * D;
-        B = D2' * B * D;
-
-        % Pack the rotated matricies into a single ABBA object
-        if nargout == 2
-          A = [ A B ; B A ];
-        end
-      elseif nargout ~= 4 && nargout ~= 1
-        error('Insufficient number of output arguments');
-      end
-    end
 
     function [beam, D] = rotate(beam, varargin)
       p = inputParser;
@@ -1347,8 +1161,6 @@ class Beam:
       end
     end
 '''
-
-
 
 
 '''

@@ -164,8 +164,6 @@ class TMatrix:
             total_orders2 = combined_index(n_max2, n_max2)[0]
             midpoint1, midpoint2 = self.T.shape[0]/2
             old_type = tmatrix.type
-            print('inside set_n_max')
-            print(total_orders1, total_orders2)
             if total_orders1 > midpoint1 or total_orders2 > midpoint2 and old_type=='total':
                 self.set_type('scattered')
             A11 = self.T[:midpoint1, :midpoint2]
