@@ -1,5 +1,6 @@
 import numpy as np
 from .t_matrix import TMatrixMie
+from pytweezer.utils import combined_index
 from copy import copy
 
 def force_torque(ibeam, sbeam, position=np.array([[],[],[]]), 
@@ -44,9 +45,9 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
             f[:, i, :] = fl.reshape((3*T.size, 1, n_beams))
             t[:, i, :] = tl.reshape((3*T.size, 1, n_beams))
             z[:, i, :] = sl.reshape((3*T.size, 1, n_beams))
-        f = squeeze(f)
-        t = squeeze(t)
-        s = squeeze(s)
+        f = np.squeeze(f)
+        t = np.squeeze(t)
+        s = np.squeeze(s)
         fx = f[1*np.arange(1, n_particles+1), :]
         fy = f[2*np.arange(1, n_particles+1), :]
         fz = f[3*np.arange(1, n_particles+1), :]
@@ -59,61 +60,43 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
         return fx, fy, fz, tx, ty, tz, sx, sy, sz
 
 
-def _force_torque_():
-    if ibeam.Nbeams ~= sbeam.Nbeams && ibeam.Nbeams ~= 1 && sbeam.Nbeams ~= 1
-    error('Beam objects must contain same number of beams or 1 beam');
-    end
+def _force_torque_(t_beam, s_beam):
+    if (tbeam.get_n_beams() != sbeam.get_n_beams()) and ibeam.get_n_beams() != 1 and sbeam.get_n_beams() != 1:
+        raise ValueError('Beam objects must contain same number of beams or 1 beam');
+    
+    if ibeam.get_n_max() > sbeam.get_n_max():
+        sbeam.get_n_max() = ibeam.get_n_max()
+    elif ibeam.get_n_max() < sbeam.get_n_max():
+        ibeam.get_n_max() = sbeam.get_n_max()
+    sbeam = sbeam.total_field(ibeam)
+    [a, b] = ibeam.getCoefficients()
+    [p, q] = sbeam.getCoefficients()
+    [n, m] = ibeam.getModeIndices()
 
-    % Ensure beams are the same size
-    if ibeam.Nmax > sbeam.Nmax
-    sbeam.Nmax = ibeam.Nmax;
-    elseif ibeam.Nmax < sbeam.Nmax
-    ibeam.Nmax = sbeam.Nmax;
-    end
-
-    % Ensure the beam is incoming-outgoing
-    sbeam = sbeam.totalField(ibeam);
-
-    % Get the relevent beam coefficients
-    [a, b] = ibeam.getCoefficients();
-    [p, q] = sbeam.getCoefficients();
-    [n, m] = ibeam.getModeIndices();
-
-    nmax=ibeam.Nmax;
-
-    b=1i*b;
-    q=1i*q;
-
+    nmax=ibeam.Nmax
+    b = 1j*b
+    q = 1j*q
     addv=zeros(2*nmax+3,1);
-
     at=[a;repmat(addv, 1, size(a, 2))];
     bt=[b;repmat(addv, 1, size(b, 2))];
     pt=[p;repmat(addv, 1, size(p, 2))];
     qt=[q;repmat(addv, 1, size(q, 2))];
 
-    ci=ott.utils.combined_index(n,m);
-
-    %these preserve order and number of entries!
-    np1=2*n+2;
-    cinp1=ci+np1;
-    cinp1mp1=ci+np1+1;
-    cinp1mm1=ci+np1-1;
+    ci = combined_index(n,m)
+    np1=2*n+2
+    cinp1=ci+np1
+    cinp1mp1=ci+np1+1
+    cinp1mm1=ci+np1-1
     cimp1=ci+1;
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    %this is for m+1... if m+1>n then we'll ignore!
     kimp=(m>n-1);
-
-    anp1=at(cinp1, :);
-    bnp1=bt(cinp1, :);
-    pnp1=pt(cinp1, :);
-    qnp1=qt(cinp1, :);
-
+    anp1=at[cinp1, :];
+    bnp1=bt[cinp1, :];
+    pnp1=pt[cinp1, :];
+    qnp1=qt[cinp1, :];
     anp1mp1=at(cinp1mp1, :);
     bnp1mp1=bt(cinp1mp1, :);
     pnp1mp1=pt(cinp1mp1, :);
     qnp1mp1=qt(cinp1mp1, :);
-
     anp1mm1=at(cinp1mm1, :);
     bnp1mm1=bt(cinp1mm1, :);
     pnp1mm1=pt(cinp1mm1, :);
@@ -134,15 +117,15 @@ def _force_torque_():
     p=p(ci, :);
     q=q(ci, :);
 
-    Az=m./n./(n+1).*imag(-(a).*conj(b)+conj(q).*(p)); %this has the correct sign... farsund. modes match.
+    Az=m./n./(n+1).*imag(-(a).*conj(b)+conj(q).*(p))
     Bz=1./(n+1).*sqrt(n.*(n-m+1).*(n+m+1).*(n+2)./(2*n+3)./(2*n+1)) ... %.*n
         .*imag(anp1.*conj(a)+bnp1.*conj(b)-(pnp1).*conj(p) ...
         -(qnp1).*conj(q)); %this has the correct sign... farsund. modes match.
 
     fz=2*sum(Az+Bz);
 
-    Axy=1i./n./(n+1).*sqrt((n-m).*(n+m+1)).*(conj(pmp1).*q - conj(amp1).*b - conj(qmp1).*p + conj(bmp1).*a); %this has the correct sign... farsund. modes match.
-    Bxy=1i./(n+1).*sqrt(n.*(n+2))./sqrt((2*n+1).*(2*n+3)).* ... %sqrt(n.*)
+    Axy=1j/n/(n+1)*np.sqrt((n-m)*(n+m+1))*(conj(pmp1)*q - conj(amp1)*b - conj(qmp1)*p + conj(bmp1)*a)# %this has the correct sign... farsund. modes match.
+    Bxy=1j/(n+1)*np.sqrt(n*(n+2))/np.sqrt((2*n+1)*(2*n+3))* ... %sqrt(n.*)
         ( sqrt((n+m+1).*(n+m+2)) .* ( p.*conj(pnp1mp1) + q.* conj(qnp1mp1) -a.*conj(anp1mp1) -b.*conj(bnp1mp1)) + ... %this has the correct sign... farsund. modes match.
         sqrt((n-m+1).*(n-m+2)) .* (pnp1mm1.*conj(p) + qnp1mm1.*conj(q) - anp1mm1.*conj(a) - bnp1mm1.*conj(b)) ); %this has the correct sign... farsund. modes match.
 

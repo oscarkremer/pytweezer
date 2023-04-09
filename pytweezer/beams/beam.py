@@ -190,6 +190,13 @@ class Beam:
             beam.a = sparse(arow_index,acol_index,aa,total_orders,beam.Nbeams);
             beam.b = sparse(brow_index,bcol_index,ba,total_orders,beam.Nbeams);
 
+    def get_coefficients(self):
+        return self.a, self.b
+
+    def  get_mode_indices():
+        n, m = combined_index(np.arange(1, self.a.shape[0]+1).T)
+        return n, m
+
     def append(self, other):
         if self._n_beams_ == 1:
             # DANGER: Have to implement this section
@@ -1147,26 +1154,7 @@ class Beam:
         otherwise
           error('Unknown beam type');
 
-    function [a, b] = getCoefficients(beam, ci)
-      if nargin == 1
-        ci = 1:size(beam.a, 1);
-      end
-
-      a = beam.a(ci, :);
-      b = beam.b(ci, :);
-
-      if nargout == 1
-        a = [a; b];
-      end
-    end
-
-    function [n, m] = getModeIndices(beam)
-      %GETMODEINDICES gets the mode indices
-      [n, m] = ott.utils.combined_index([1:size(beam.a, 1)].');
-      if nargout == 1
-        n = [n; m];
-      end
-    end
+   
 
     def divide(self, scalar):
         self.a = self.a/scalar
