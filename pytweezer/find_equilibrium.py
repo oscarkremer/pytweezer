@@ -1,22 +1,5 @@
 function eq = find_equilibrium(z, fz)
-%FIND_EQUILIBRIUM estimates equilibrium positions from position-force data
-%
-% zeq = find_equilibrium(z, fz) finds the axial equilibrium given two vectors
-% z and fz with the position and force values respectively.
-%
-% Based on the code in example_gaussian from the original toolbox.
-%
-% See also ott.axial_equilibrium
-%
-% TODO: Generalize the code to find multiple equilibriums.
-% TODO: z need not be a vector of scalars, we could have a array of
-%   position vectors representing some path we want to find the
-%   equilibrium on.  We could do a similar thing for fz.
-%
-% This file is part of the optical tweezers toolbox.
-% See LICENSE.md for information about using/distributing this file.
 
-% This function is not directly concerned with force/torque calculation
 ott.warning('ott:findEquilibrium:move', ...
     'This function will move in a future release');
 
@@ -39,12 +22,9 @@ if zeroindex == 1
   zeroindex1 = find(fz>0, 1);
   zeroindex = find(fz(zeroindex1:end), 1) + zeroindex1 - 1;
 end
-
-% Scale z
 zmin = min(z);
 zmax = max(z);
 z = 2 * (z - zmin) / (zmax - zmin) - 1;
-
 if ~isempty(zeroindex)
     %fit to third order polynomial the local points. (only works when dz
     %sufficiently small)
@@ -64,9 +44,5 @@ if ~isempty(zeroindex)
     end
 else
     eq=[];
-end
-
-% Unscale eq
 eq = (eq + 1)/2*(zmax - zmin) + zmin;
-
 end

@@ -54,7 +54,6 @@ class Beam:
         m = m.T
         return a, b, n, m
 
-
     def translate_z_type_helper(self, z, n_max):
         if self.basis == 'incoming':
             translation_type = 'sbesselh2';
@@ -152,6 +151,20 @@ class Beam:
         else:
             raise TypeError('Basis must be string type')
 
+    def total_field(self, ibeam):
+        if self.beam_type == 'total':
+            pass
+        elif self.beam_type == 'scattered':    
+            beam = self.copy()   
+            beam = 2*beam + i_beam
+            beam.type = 'total'
+        elif self.beam_type == 'internal':
+            raise ValueError('Cannot convert from internal to total field')
+        elif self.beam_type == 'incident':
+            raise ValueError('Cannot convert from incident to total field')
+        else:
+            raise ValueError('Unknown beam type')
+
     def get_basis(self):
         return self._basis_
 
@@ -162,7 +175,7 @@ class Beam:
         return self.a.shape[1]
     
     def set_n_max(self, n_max, tolerance=1e-6, power_loss='warn'):
-        total_orders = combined_index(n_max, n_max)
+        total_orders = int(combined_index(n_max, n_max))
         if self.a.shape[0] > total_orders:
             amagA = np.power(np.abs(self.a),2).sum()
             bmagA = np.power(np.abs(self.b),2).sum()
@@ -185,10 +198,14 @@ class Beam:
                 self.a = self.a[:total_orders, :]
                 self.b = self.b[:total_orders, :]
         elif self.a.shape[0] < total_orders:
-            arow_index, acol_index, aa = find(beam.a)
-            brow_index, bcol_index, ba = find(beam.b)
-            beam.a = sparse(arow_index,acol_index,aa,total_orders,beam.Nbeams);
-            beam.b = sparse(brow_index,bcol_index,ba,total_orders,beam.Nbeams);
+            rows, columns = np.where(self.a)
+            elements = self.a[(rows, columns)]
+            print(total_orders, self._n_beams_)
+            self.a = csr_matrix((elements, (rows, columns)), shape=(total_orders, self._n_beams_)).toarray()
+            rows, columns = np.where(self.b)
+            elements = self.b[(rows, columns)]
+            self.b = csr_matrix((elements, (rows, columns)), shape=(total_orders, self._n_beams_)).toarray() 
+        
 
     def get_coefficients(self):
         return self.a, self.b
@@ -199,7 +216,7 @@ class Beam:
 
     def append(self, other):
         if self._n_beams_ == 1:
-            # DANGER: Have to implement this section
+            # TODO: Have to implement this section
             self.a = other.a
             self.b = other.b
         else:
@@ -208,8 +225,17 @@ class Beam:
             self.a = np.concatenate([self.a, other.a])
             self.b = np.concatenate([self.b, other.b])
 
+    def __add__(self, beam2):
+        if self.n_max > beam2.n_max:
+            beam2.set_n_max(self.n_max)
+        elif beam2.n_max > self.n_max:
+            self.set_n_max(beam2.n_max)
+        else:
+            pass
+        self.a = self.a + beam2.a
+        self.b = self.b + beam2.b
+
     def __mul__(self, other):
-        print(other.shape, self.a.shape)
         if isinstance(other, (int, float)):
             self.a = other*self.a
             self.b = other*self.b
@@ -1280,19 +1306,7 @@ class Beam:
     end
 
 
-    function beam = plus(beam1, beam2)
-      %PLUS add two beams together
 
-      if beam1.Nmax > beam2.Nmax
-        beam2.Nmax = beam1.Nmax;
-      elseif beam2.Nmax > beam1.Nmax
-        beam1.Nmax = beam2.Nmax;
-      end
-
-      beam = beam1;
-      beam.a = beam.a + beam2.a;
-      beam.b = beam.b + beam2.b;
-    end
 
     function beam = minus(beam1, beam2)
       %MINUS subtract two beams
