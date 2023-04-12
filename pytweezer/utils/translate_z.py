@@ -22,7 +22,6 @@ def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
         if len(nmax) > 2:
             warnings.warn('Variable nmax given with more than two parameters, \
                 using only the two first elements: {} and {}'.format(nmax[0], nmax[1]))
-        print(nmax)
         nmax1 = nmax[0]
         nmax2 = nmax[1]
         nmax = max(nmax[0], nmax[1])

@@ -36,7 +36,6 @@ def _translate_z_(beam, z=0, n_max=None):
             beam.get_basis())
         beam.append(translate(beam, A, B))
         beam.set_basis('regular')
-#        print(beam.a)
     return beam, A, B
 
 def translate_xyz(beam, position, n_max=100):
@@ -60,9 +59,10 @@ def translate_rtp(beam, position, n_max=100):
     theta = position[1, :]
     phi = position[2, :]
     if any((theta != 0 and abs(theta) != np.pi) or phi != 0):
+        print(r)
         for i in range(r.size):
             tbeam, D = rotate_yz(beam, theta[i], phi[i], n_max= max(o_n_max, beam.n_max))
-            tbeam, A, B = tbeam.translate_z(r[i], 'Nmax', o_n_max)
+            tbeam, A, B = translate_z(tbeam, r[i], n_max=o_n_max)
             beam = beam.append(rotate(wigner=D))
     else:
         d_n_max = max(o_n_max, beam.n_max)

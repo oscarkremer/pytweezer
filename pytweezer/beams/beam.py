@@ -151,16 +151,17 @@ class Beam:
         else:
             raise TypeError('Basis must be string type')
 
-    def total_field(self, ibeam):
-        if self.beam_type == 'total':
+    def total_field(self, i_beam):
+        if self._type_ == 'total':
             pass
-        elif self.beam_type == 'scattered':    
-            beam = self.copy()   
+        elif self._type_ == 'scattered':    
+            beam = copy(self)   
             beam = 2*beam + i_beam
-            beam.type = 'total'
-        elif self.beam_type == 'internal':
+            beam.set_type('total')
+            return beam
+        elif self._type_ == 'internal':
             raise ValueError('Cannot convert from internal to total field')
-        elif self.beam_type == 'incident':
+        elif self._type_ == 'incident':
             raise ValueError('Cannot convert from incident to total field')
         else:
             raise ValueError('Unknown beam type')
@@ -169,7 +170,7 @@ class Beam:
         return self._basis_
 
     def get_n_max(self):
-        return combined_index(self.a.shape[0])[0]
+        return int(combined_index(self.a.shape[0])[0])
         
     def get_n_beams(self):
         return self.a.shape[1]
@@ -200,7 +201,6 @@ class Beam:
         elif self.a.shape[0] < total_orders:
             rows, columns = np.where(self.a)
             elements = self.a[(rows, columns)]
-            print(total_orders, self._n_beams_)
             self.a = csr_matrix((elements, (rows, columns)), shape=(total_orders, self._n_beams_)).toarray()
             rows, columns = np.where(self.b)
             elements = self.b[(rows, columns)]
@@ -210,9 +210,9 @@ class Beam:
     def get_coefficients(self):
         return self.a, self.b
 
-    def  get_mode_indices():
+    def get_mode_indices(self):
         n, m = combined_index(np.arange(1, self.a.shape[0]+1).T)
-        return n, m
+        return n.astype(int), m.astype(int)
 
     def append(self, other):
         if self._n_beams_ == 1:
@@ -234,6 +234,7 @@ class Beam:
             pass
         self.a = self.a + beam2.a
         self.b = self.b + beam2.b
+        return self
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):

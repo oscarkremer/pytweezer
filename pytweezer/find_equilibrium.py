@@ -1,48 +1,34 @@
-function eq = find_equilibrium(z, fz)
+import numpy as np
+import warnings
 
-ott.warning('ott:findEquilibrium:move', ...
-    'This function will move in a future release');
+def find_equilibrium(z, fz):
 
-% Check the size of the inputs
-assert(isvector(z), 'z must be a vector not a matrix');
-assert(isvector(fz), 'fz must be a vector not a matrix');
-  
-% Make sure the vectors are both colum vectors
-fz = fz(:);
-z = z(:);
-
-if numel(z) ~= numel(fz)
-  error('Number of elements in z and fz must be equal');
-end
-
-zeroindex=find(fz<0,1);
-if zeroindex == 1
-  % Skip to second zero crossing
-  warning('Ignoring fz<0 entries at start of vector');
-  zeroindex1 = find(fz>0, 1);
-  zeroindex = find(fz(zeroindex1:end), 1) + zeroindex1 - 1;
-end
-zmin = min(z);
-zmax = max(z);
-z = 2 * (z - zmin) / (zmax - zmin) - 1;
-if ~isempty(zeroindex)
-    %fit to third order polynomial the local points. (only works when dz
-    %sufficiently small)
-    zrange = max([zeroindex-2,1]):min([zeroindex+2,length(z)]);
-    pz=polyfit(z(zrange), fz(zrange), 3);
-    root_z=roots(pz); %find roots of 3rd order poly.
-    dpz=[3*pz(1),2*pz(2),1*pz(3)]; %derivative of 3rd order poly.
-
-    real_z=root_z(imag(root_z)==0); % finds real roots only.
-
-    rootsofsign=polyval(dpz,real_z); %roots that are stable
-    zeq=real_z(rootsofsign<0); %there is at most 1 stable root. critical roots give error.
-    try
-      eq=zeq(abs(zeq-z(zeroindex))==min(abs(zeq-z(zeroindex))));
-    catch
-      eq = [];
-    end
-else
-    eq=[];
-eq = (eq + 1)/2*(zmax - zmin) + zmin;
-end
+    if not isinstance(z, np.ndarray) or not isinstance(fz, np.ndarray):
+        raise TypeError('Inputs z and fz must be numpy arrays.')
+    if z.size != fz.size:
+        raise ValueError('Number of element in z and fz must be equal')
+    zero_index = np.where(fz<0)[0][0]
+    print(zero_index)
+    if not zero_index:
+        warnings.warn('Ignoring fz<0 entries at start of vector')
+        zero_index_1 = np.where(fz>0)[0][0]
+        zero_index = np.where(fz[zero_index_1:])[0][0]+zero_index_1 - 1
+    zmin = z.min()
+    zmax = z.max()
+    z = 2 * (z - zmin) / (zmax - zmin) - 1
+    if zero_index.size:
+        zrange = np.arange(max(zero_index-2,1),min(zero_index+2,z.size)+1)
+        pz = np.polyfit(z[zrange], fz[zrange], 3)
+        root_z = np.roots(pz)
+        dpz = np.array([3*pz[0],2*pz[1],1*pz[2]])
+        real_z = root_z[root_z.imag==0][0]
+        roots_of_sign = np.polyval(dpz,real_z)
+        zeq = real_z[roots_of_sign<0]
+        try:
+            eq = zeq[abs(zeq-z[zero_index])==min(abs(zeq-z[zero_index]))]
+            eq = (eq + 1)/2*(zmax - zmin) + zmin
+            return eq
+        except Exception as e:
+            return []
+    else:
+        return []
