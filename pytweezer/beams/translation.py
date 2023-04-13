@@ -1,6 +1,7 @@
 import numpy as np
 from copy import copy
 from pytweezer.utils import translate_z as translation, combined_index, xyz2rtp
+from .rotation import rotate_yz, rotate
 
 def translate(beam, A, B):
     AB = np.block([[A, B], [B, A]])
@@ -11,9 +12,9 @@ def _translate_z_(beam, z=0, n_max=None):
         n_max = beam.get_n_max()
     def translate_z_type_helper(z, n_max, basis):
         if basis == 'incoming':
-            translation_type = 'sbesselh2';
+            translation_type = 'sbesselh2'
         elif basis == 'outgoing':
-            translation_type = 'sbesselh1';
+            translation_type = 'sbesselh1'
         elif basis == 'regular':
             translation_type = 'sbesselj'
         A, B, _ = translation(n_max, z, function_type=translation_type)
@@ -59,11 +60,13 @@ def translate_rtp(beam, position, n_max=100):
     theta = position[1, :]
     phi = position[2, :]
     if any((theta != 0 and abs(theta) != np.pi) or phi != 0):
-        print(r)
+        i_beam = copy(beam)
         for i in range(r.size):
-            tbeam, D = rotate_yz(beam, theta[i], phi[i], n_max= max(o_n_max, beam.n_max))
+            tbeam, D = rotate_yz(i_beam, theta[i], phi[i], r[i], n_max= max(o_n_max, beam.n_max))
             tbeam, A, B = translate_z(tbeam, r[i], n_max=o_n_max)
-            beam = beam.append(rotate(wigner=D))
+            tbeam, _ = rotate(tbeam, wigner=D.T)
+            beam.append(tbeam)
+        return beam, A, B, D
     else:
         d_n_max = max(o_n_max, beam.n_max)
         D = np.eye(combined_index(d_n_max, d_n_max))

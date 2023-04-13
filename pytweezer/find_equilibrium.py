@@ -8,7 +8,6 @@ def find_equilibrium(z, fz):
     if z.size != fz.size:
         raise ValueError('Number of element in z and fz must be equal')
     zero_index = np.where(fz<0)[0][0]
-    print(zero_index)
     if not zero_index:
         warnings.warn('Ignoring fz<0 entries at start of vector')
         zero_index_1 = np.where(fz>0)[0][0]

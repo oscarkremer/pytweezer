@@ -26,7 +26,6 @@ def xyz2rtp(x, y, z):
     if isinstance(y, float):
         y = 0.0 if y==0.0 else y
     xy = np.sqrt(np.power(x, 2) + np.power(y, 2))
-    print(xy, z)
     theta = __mod__(np.arctan2(xy, z)+2*np.pi, 2*np.pi)
     phi = __mod__(np.arctan2(y, x)+2*np.pi, 2*np.pi)
     r = np.sqrt(x*x + y*y + z*z)

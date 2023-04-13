@@ -247,6 +247,10 @@ class Beam:
                 self.a = ab[:int(ab.shape[0]/2),:]
                 self.b = ab[int(ab.shape[0]/2):,:]
                 return self
+            else:
+                self.a = np.matmul(other, self.a)
+                self.b = np.matmul(other, self.b)
+                return self
         elif isinstance(other, complex):
             if hasattr(other, '__iter__'):
                 if other.shape[1] == 2*self.a.shape[0]:
@@ -266,6 +270,10 @@ class Beam:
                 ab = np.matmul(other, np.concatenate([self.a, self.b]))
                 self.a = ab[:int(ab.shape[0]/2),:]
                 self.b = ab[int(ab.shape[0]/2):,:]
+                return self
+            else:
+                self.a = np.matmul(other, self.a)
+                self.b = np.matmul(other, self.b)
                 return self
         elif isinstance(other, complex):
             if hasattr(other, '__iter__'):

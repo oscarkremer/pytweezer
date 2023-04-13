@@ -30,7 +30,6 @@ def wigner_rotation_matrix(nmax, R):
     DD = D1.copy()
     X = [D1]
     for i in range(2, nmax+1):
-
         DDD = 0j + np.zeros((2*i+1, 2*i+1))
         m0 = np.matmul(np.ones((2*i-1,1)), np.arange(-i, i+1).reshape((1, -1)))
         m1 = np.arange(-i+1, i).reshape((-1, 1))*np.ones((1, 2*i+1))
@@ -48,7 +47,6 @@ def wigner_rotation_matrix(nmax, R):
         DDD[-1, 1:-1] = D1[2, 1] * c[:, 1:-1] * DD[-1, :]
         DDD[-1, 2:] = DDD[-1, 2:] + D1[2,2] * d[:, 2:]*DD[-1, :]
         DDD[-1,:-2] = DDD[-1,:-2] + D1[2,0] * np.fliplr(d[:, 2:]) * DD[-1, :]
-        DD = DDD
+        DD = DDD.copy()
         X.append(DDD)        
-    D = block_diag(*X)
-    return D
+    return block_diag(*X)
