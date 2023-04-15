@@ -1,7 +1,7 @@
 import numpy as np
 from .legendre_row import legendre_row
 from .match_size import match_size
-
+import time
 def spherical_harmonics(n, m, theta, phi=np.array([])):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
@@ -38,22 +38,21 @@ def spherical_harmonics(n, m, theta, phi=np.array([])):
     theta, phi = match_size(theta, phi)
     input_length = theta.shape[0]
     pnm = legendre_row(n, theta)
-
     pnm = pnm[abs(m), :]
     phiM, mv = np.meshgrid(phi, m)
-    index_m_positive = np.where(m>=0)
-    index_m_negative = np.where(m<0)
-    negative_pnm = ((-1)**(-mv[m<0,:]))*pnm[m<0,:]
     pnm = np.concatenate([((-1)**(-mv[m<0,:]))*pnm[m<0,:], pnm[m>=0,:]])
     pnm = pnm.reshape((pnm.shape[0], -1))
     expphi = np.exp(1j*mv*phiM)
+    start = time.time()
     Y = pnm*expphi
     expplus = np.exp(1j*phiM)
     expminus = np.exp(-1j*phiM)
+    print(time.time()-start)
 
     ymplus = np.concatenate([Y[1:,:], np.zeros((1,theta.shape[0]))])
     ymminus = np.concatenate([np.zeros((1,theta.shape[0])), Y[:-1,:]])
     Ytheta = np.sqrt((n-mv+1)*(n+mv))/2*expplus*ymminus - np.sqrt((n-mv)*(n+mv+1))/2*expminus*ymplus
+
     Y2 = _spherical_harmonics(n+1,theta,phi)
     ymplus = Y2[2:, :]
     ymminus = Y2[:-2,:]
@@ -65,7 +64,7 @@ def spherical_harmonics(n, m, theta, phi=np.array([])):
 
 
 
-def _spherical_harmonics(n, m, theta, phi=None):
+def _spherical_harmonics(n, theta, phi):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
     %
@@ -90,27 +89,16 @@ def _spherical_harmonics(n, m, theta, phi=None):
     '''
     if not (isinstance(n, float) or isinstance(n, int)):
         raise TypeError('Input parameter \'n\' must be scalar.')
-    if not phi:    
-        phi = theta
-        theta = m
-    mi = m
     m = np.arange(-n,n+1)
     index_bigger = np.argwhere(abs(m) <=n)
     if index_bigger.size:
        m = m[tuple(index_bigger.T)]
     theta, phi = match_size(theta, phi)
-    input_length = theta.shape[0]
     pnm = legendre_row(n, theta)
-
     pnm = pnm[abs(m), :] 
     phiM, mv = np.meshgrid(phi, m)
-    index_m_positive = np.argwhere(m>=0)
-    index_m_negative = np.argwhere(m<0)
-
-    pnm = np.concatenate([(-1)**(-mv[m<0,:])*pnm[m<0,:], pnm[m>=0,:]])
-    
+    pnm = np.concatenate([(-1)**(-mv[m<0,:])*pnm[m<0,:], pnm[m>=0,:]])    
     pnm = pnm.reshape((pnm.shape[0], -1))
     expphi = np.exp(1j*mv*phiM)
-
     Y = pnm*expphi
     return Y

@@ -1,7 +1,9 @@
 import numpy as np
 from .rtp2xyz import rtp2xyz
 from .vswf import vswf
+from numba import jit
 
+#@jit(nopython=True) # Set "nopython" mode for best performance, equivalent to @njit
 def vswf_cart(n, m, kr, theta, phi, htype=None):
     '''
     % VSWFCART vector spherical harmonics spherical coordinate input,

@@ -39,7 +39,6 @@ def legendre_row(n, theta):
             pnm[jj-1,:] = a*ct*pnm[jj,:]-b*st**2*pnm[jj+1,:]
             jj = jj-1
     ST, M = np.meshgrid(st, np.arange(0, n+1))
-    
     pnm = pnm*np.power(ST, M)
     return pnm
   

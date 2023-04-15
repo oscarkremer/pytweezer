@@ -3,6 +3,8 @@ from .t_matrix import TMatrixMie
 from pytweezer.utils import combined_index
 from numpy import matlib as matlib
 from copy import copy
+from numba import jit
+
 
 def force_torque(ibeam, sbeam, position=np.array([[],[],[]]), 
         rotation=np.array([[],[],[]]), coherent=False):

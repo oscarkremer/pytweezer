@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.linalg import block_diag
+from numba import jit
 
+#@jit(nopython=True) # Set "nopython" mode for best performance, equivalent to @njit
 def wigner_rotation_matrix(nmax, R):
     '''    % WIGNER_ROTATION_MATRIX rotation matrix for rotation of spherical
     % harmonics or T-matrices.

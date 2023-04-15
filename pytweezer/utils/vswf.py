@@ -7,7 +7,9 @@ from .sbesselh import sbesselh
 from .sbesselj import sbesselj
 from .three_wide import three_wide
 from .vsh import vsh
+from numba import jit
 
+#@jit(nopython=True) # Set "nopython" mode for best performance, equivalent to @njit
 def vswf(n, m, kr, theta, phi, htype=None):
     '''
     % VSWF vector spherical wavefunctions: M_k, N_k.

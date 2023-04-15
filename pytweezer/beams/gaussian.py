@@ -4,8 +4,11 @@ from .translation import translate_z
 from pytweezer.utils import angular_grid, combined_index, laguerre, paraxial_beam_waist
 from numpy.linalg import norm
 from copy import copy
+from numba import jit
+import time
 
 class Gaussian(PointMatch):
+
     def __init__(self, beam_function='lg',
                         mode=np.array([0, 0]),
                         n_max=100, 
@@ -150,7 +153,7 @@ class Gaussian(PointMatch):
         else:
             E_theta = - Ex * np.cos(phi) - Ey * np.sin(phi)
             E_phi = - Ex * np.sin(phi) + Ey * np.cos(phi)
-        e_field = np.concatenate([E_theta[:], E_phi[:]])
+        e_field = np.concatenate([E_theta, E_phi])
         if len(e_field.shape) == 1:
             e_field = e_field.reshape((-1, 1))
         if axi_symmetry:
