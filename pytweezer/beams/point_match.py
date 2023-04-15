@@ -2,8 +2,6 @@ from .beam import Beam
 import numpy as np
 from pytweezer.utils import spherical_harmonics
 import numpy.linalg as lin
-from scipy.optimize import lsq_linear
-import time
 
 class PointMatch(Beam):
 
@@ -14,24 +12,24 @@ class PointMatch(Beam):
         icm=np.array([[]]), zero_rejection_level=1e-8,
         invert_coefficient_matrix=False):
         if not icm.size:
-
+            end = 0
             coefficient_matrix = np.zeros((e_field.size, 2*nn.size), dtype=complex)
             for n in range(1, nn.max()+1):
                 ci = np.where(nn == n)[0]
-
                 _, dtY, dpY = spherical_harmonics(n, np.sort(mm[ci-1]), theta, phi)
                 dtY = dtY.T if dtY.shape[0] < dtY.shape[1] else dtY
                 dpY = dpY.T if dpY.shape[0] < dpY.shape[1] else dpY
                 coefficient_matrix[:,ci] = np.concatenate([dpY, -dtY]) * np.power(1j,(n+1))/np.sqrt(n*(n+1))
                 coefficient_matrix[:,ci+nn.size] = np.concatenate([dtY, dpY])*np.power(1j, n)/np.sqrt(n*(n+1))
             if invert_coefficient_matrix:
-                icm = pinv(coefficient_matrix)
+                icm = lin.pinv(coefficient_matrix)
             if invert_coefficient_matrix:
                 exp_coeffs = np.matmul(icm, e_field)
             else:
                 exp_coeffs, _, _, _ = np.linalg.lstsq(coefficient_matrix, e_field)
+            
         else:
-            assert icm.shape[1] == e_field.size, 'Number of cols in coefficient matrix must match length(e_field)'
+            assert icm.shape[1] == e_field.size, 'Number of columns in coefficient matrix must match length(e_field)'
             exp_coeffs = icm * e_field
         fa = exp_coeffs[:int(exp_coeffs.shape[0]/2),:]
         fb = exp_coeffs[int(exp_coeffs.shape[0]/2):,:]
@@ -45,8 +43,6 @@ class PointMatch(Beam):
             fa = fa[pwr > zero_rejection_level*pwr.max()]
             fb = fb[pwr > zero_rejection_level*pwr.max()]
         a, b, _, _ = self.make_beam_vector(fa, fb, nn, mm) 
-
-
         return a, b
 '''  
 #s    def bsc_focalplane(self, nn, mm, e_field, kr, theta, phi, varargin):

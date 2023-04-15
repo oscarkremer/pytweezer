@@ -4,11 +4,14 @@ from .laguerre import laguerre
 from .legendre_row import legendre_row
 from .ka_nmax import ka_nmax
 from .match_size import match_size
+from .meshgrid import meshgrid
 from .n_max_2ka import n_max_2ka
 from .paraxial_beam_waist import paraxial_beam_waist
 from .paraxial_transformation_matrix import paraxial_transformation_matrix
 from .rotations import rotx, roty, rotz
 from .rtp2xyz import rtp2xyz
+from .compute_y_exp_minus_and_plus import compute_y_exp_minus_and_plus_n, compute_y_exp_n, compute_y_theta_phi
+from ._nb_legendre_row_ import _nb_legendre_row_
 from .sbesselh import sbesselh
 from .sbesselj import sbesselj
 from .spherical_harmonics import spherical_harmonics
@@ -25,11 +28,14 @@ __all__ = [
     'angular_grid',
     'combined_index',
     'laguerre',
+    'compute_y_exp_minus_and_plus',
+    '_nb_legendre_row_'
     'legendre_row',
     'ka_nmax',
     'match_size',
     'paraxial_beam_waist',
     'paraxial_transformation_matrix',
+    'meshgrid',
     'n_max_2ka',
     'rotations',
     'rtp2xyz',

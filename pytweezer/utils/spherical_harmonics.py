@@ -1,8 +1,10 @@
 import numpy as np
 from .legendre_row import legendre_row
 from .match_size import match_size
-import time
-def spherical_harmonics(n, m, theta, phi=np.array([])):
+from .meshgrid import meshgrid
+from .compute_y_exp_minus_and_plus import * 
+
+def spherical_harmonics(n, m, theta, phi):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
     %
@@ -27,44 +29,20 @@ def spherical_harmonics(n, m, theta, phi=np.array([])):
     '''
     if not (isinstance(n, float) or isinstance(n, int)):
         raise TypeError('Input parameter \'n\' must be scalar.')
-    if not phi.size:    
-        phi = theta
-        theta = m
     mi = m
     m = np.arange(-n,n+1)
     index_bigger = np.argwhere(abs(m) <=n)
     if index_bigger.size:
        m = m[tuple(index_bigger.T)]
     theta, phi = match_size(theta, phi)
-    input_length = theta.shape[0]
     pnm = legendre_row(n, theta)
-    pnm = pnm[abs(m), :]
-    phiM, mv = np.meshgrid(phi, m)
-    pnm = np.concatenate([((-1)**(-mv[m<0,:]))*pnm[m<0,:], pnm[m>=0,:]])
-    pnm = pnm.reshape((pnm.shape[0], -1))
-    expphi = np.exp(1j*mv*phiM)
-    start = time.time()
-    Y = pnm*expphi
-    expplus = np.exp(1j*phiM)
-    expminus = np.exp(-1j*phiM)
-    print(time.time()-start)
-
-    ymplus = np.concatenate([Y[1:,:], np.zeros((1,theta.shape[0]))])
-    ymminus = np.concatenate([np.zeros((1,theta.shape[0])), Y[:-1,:]])
-    Ytheta = np.sqrt((n-mv+1)*(n+mv))/2*expplus*ymminus - np.sqrt((n-mv)*(n+mv+1))/2*expminus*ymplus
-
-    Y2 = _spherical_harmonics(n+1,theta,phi)
-    ymplus = Y2[2:, :]
-    ymminus = Y2[:-2,:]
-    Yphi = 1j/2* np.sqrt((2*n+1)/(2*n+3))*(np.sqrt((n+mv+1)*(n+mv+2))*expminus*ymplus+np.sqrt((n-mv+1)*(n-mv+2))*expplus*ymminus)
-    Y = Y[n+mi,:]
-    Yphi = Yphi[n+mi,:]
-    Ytheta = Ytheta[n+mi,:]
+    phiM, mv = meshgrid(phi, m)
+    Y, expplus, expminus = compute_y_exp_minus_and_plus_n(m, mv, phi, pnm)
+    Y2 = _spherical_harmonics_(n+1,theta,phi) 
+    Y, Ytheta, Yphi = compute_y_theta_phi(Y, Y2, expplus, expminus, n, m, mi, mv, theta)
     return Y, Ytheta, Yphi
 
-
-
-def _spherical_harmonics(n, theta, phi):
+def _spherical_harmonics_(n, theta, phi):
     '''
     % SPHARM scalar spherical harmonics and angular partial derivatives.
     %
@@ -95,10 +73,6 @@ def _spherical_harmonics(n, theta, phi):
        m = m[tuple(index_bigger.T)]
     theta, phi = match_size(theta, phi)
     pnm = legendre_row(n, theta)
-    pnm = pnm[abs(m), :] 
-    phiM, mv = np.meshgrid(phi, m)
-    pnm = np.concatenate([(-1)**(-mv[m<0,:])*pnm[m<0,:], pnm[m>=0,:]])    
-    pnm = pnm.reshape((pnm.shape[0], -1))
-    expphi = np.exp(1j*mv*phiM)
-    Y = pnm*expphi
+    phiM, mv = meshgrid(phi, m)
+    Y = compute_y_exp_n(m, mv, phiM, pnm)
     return Y
