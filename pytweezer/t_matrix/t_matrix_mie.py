@@ -96,7 +96,7 @@ class TMatrixMie(TMatrix):
         else:
             d = ( h0d*j0 - j0d*h0 )/( m*j1*h0d - j1d*h0 )
             c = ( j0d*h0 - h0d*j0 )/( m*j1d*h0 - h0d*j1 )
-            T=sparse(np.arange(1,2*(Nmax**2+2*Nmax)+1,1),np.arange(1,2*(Nmax**2+2*Nmax)+1,1),
+            T= sparse(np.arange(1,2*(Nmax**2+2*Nmax)+1,1),np.arange(1,2*(Nmax**2+2*Nmax)+1,1),
                 [c(indexing),d(indexing)])
         return T 
 

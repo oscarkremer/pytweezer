@@ -3,6 +3,7 @@ from .point_match import PointMatch
 from .translation import translate_z
 from pytweezer.utils import angular_grid, combined_index, laguerre, paraxial_beam_waist
 from numpy.linalg import norm
+from scipy.special import factorial
 from copy import copy
 from numba import jit
 import time
@@ -122,7 +123,7 @@ class Gaussian(PointMatch):
         for i in range(1, c.size+1):
             radial_mode = initial_mode[i-1, 0]
             azimuthal_mode = initial_mode[i-1,1]            
-            norm_paraxial = np.sqrt(2*np.math.factorial(radial_mode)/(np.pi*np.math.factorial(radial_mode+np.abs(azimuthal_mode))))
+            norm_paraxial = np.sqrt(2*factorial(radial_mode)/(np.pi*factorial(radial_mode+np.abs(azimuthal_mode))))
             L = laguerre(int(radial_mode), int(np.abs(azimuthal_mode)), rw)
             mult1 = np.exp(-rw/2 + 1j*azimuthal_mode*phi+1j*np.pi/2*(radial_mode*2+np.abs(azimuthal_mode)+1))
             beam_envelope[:,i-1] = norm_paraxial*np.power(rw, np.abs(azimuthal_mode/2))*L*mult1

@@ -36,7 +36,7 @@ class StarShape(Shape, ABC):
 
     def surf(self, points=[], n_points=[100,100], surf_options=[], position=[], rotation=[], axes=[]):
         if not points:
-            sz = npoints
+            sz = n_points
             if sz.size == 1:
                 sz = np.array([sz, sz])
 
