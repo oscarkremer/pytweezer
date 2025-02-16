@@ -34,10 +34,9 @@ def vswf_cart(n, m, kr, theta, phi, htype=None):
     '''
 
     if not htype:
-        htype = 0
-    
+        htype = 0 
     M, N, _, _, _, _ = vswf(n, m, kr, theta, phi, htype)
-    x, y, z = rtp2xyz(kr,theta,phi)
+    x, y, z = rtp2xyz(kr, theta, phi)
     theta_hat_x = np.cos(theta)*np.cos(phi)
     theta_hat_y = np.cos(theta)*np.sin(phi)
     theta_hat_z = -np.sin(theta)
@@ -60,12 +59,11 @@ def vswf_cart(n, m, kr, theta, phi, htype=None):
             r_hat_y = np.sin(theta)*np.sin(phi)
             r_hat_z = np.cos(theta)
     else:
-        r_hat_x[kr==0] = np.sin(theta[kr == 0])*np.cos(phi[kr==0])
-        r_hat_y[kr==0] = np.sin(theta[kr == 0])*np.sin(phi[kr==0])
-        r_hat_z[kr==0] = np.cos(theta[kr == 0])
+        r_hat_x[kr == 0] = np.sin(theta[kr == 0])*np.cos(phi[kr == 0])
+        r_hat_y[kr == 0] = np.sin(theta[kr == 0])*np.sin(phi[kr == 0])
+        r_hat_z[kr == 0] = np.cos(theta[kr == 0])
     outputs = []
     for matrix in [M, N]:
-    
         npts = int(matrix.shape[1]/3)
         Mr = matrix[:, :int(npts)]
         Mtheta = matrix[:,npts:2*npts]

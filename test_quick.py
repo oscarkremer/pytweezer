@@ -24,6 +24,6 @@ zeq = find_equilibrium(z[2,:], f[2, 0, :])[0].real
 r = np.array([[1],[0],[0]])*np.linspace(-4,4,200)*wavelength_medium + np.array([[0],[0],[zeq]])
 
 fr = force_torque(beam, T, position=r)
-#plt.plot(r[0,:]/wavelength_medium, fr[0,0,:])
-#plt.xlim([-8, 8])
-#plt.show()
+plt.plot(r[0,:]/wavelength_medium, fr[0,0,:])
+plt.xlim([-8, 8])
+plt.show()
