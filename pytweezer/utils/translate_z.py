@@ -35,6 +35,7 @@ def translate_z(nmax: int, z, function_type='sbesselj', method='gumerov'):
         return A, B, C
 
     #% Calculate the scalar coefficients
+
     if method not in ('videen', 'gumerov'):
         raise ValueError('Unknown method. Method for translation must be in (\'videen\',\'gumerov\'))')
     elif method == 'videen':
@@ -127,7 +128,7 @@ def calculate_AB(C, nmax1, nmax2, nmax, z, p):
 
     central_iterator1 = np.arange(1, nmax1+1)*np.arange(2, nmax1+2)
     central_iterator2 = np.arange(1, nmax2+1)*np.arange(2, nmax2+2)
-    ciy,cix = np.meshgrid(central_iterator1,central_iterator2);
+    ciy,cix = np.meshgrid(central_iterator1, central_iterator2);
 
     mmm = 0
     C0 = C[1:(nmax2+1), 1:(nmax1+1), mmm]
@@ -166,6 +167,7 @@ def calculate_AB(C, nmax1, nmax2, nmax, z, p):
         A = csr_matrix((A, (toIndexy-1, toIndexx-1)), shape=(nmax1*(nmax1+2),nmax2*(nmax2+2))).toarray()
     return A, B
 
+#@jit(nopython=True)
 def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
     mmax = min(nmax1, nmax2)
     m = 0
@@ -197,6 +199,7 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
     C[:, :, 0] = C_ndn0[1:(nmax2+3), 1:(nmax1+2)]
     ANM = anm_l(np.arange(0, 2*nmax+2).reshape((1, -1)).T,np.arange(1, nmax+1))
     IANM = 1/ANM
+
     for m in range(1, mmax+1):
         nd = np.arange(m, fval-m+1)
         C_nd1m = (bnm_l(nd, -m)*C_ndn0[nd, m]-bnm_l(nd+1, m-1)*C_ndn0[nd+2, m])/bnm_l(m, -m)
@@ -216,7 +219,6 @@ def translate_z_gumerov(nmax1, nmax2, nmax, r, function_type):
 
 def anm_l(n, m):
     fn = 1/(2*n+1)/(2*n+3)
-    warnings.filterwarnings("ignore")
     a_nm = np.sqrt((n+np.abs(m)+1)*(n-np.abs(m)+1)*fn)
     smaller_than_zero = np.argwhere(n < 0)
     if smaller_than_zero.size:

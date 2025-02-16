@@ -2,6 +2,7 @@ import numpy as np
 from copy import copy
 from pytweezer.utils import translate_z as translation, combined_index, xyz2rtp
 from .rotation import rotate_yz, rotate
+import time
 
 def translate(beam, A, B):
     AB = np.block([[A, B], [B, A]])
@@ -11,17 +12,12 @@ def _translate_z_(beam, z=0, n_max=None):
     if not n_max:
         n_max = beam.get_n_max()
     def translate_z_type_helper(z, n_max, basis):
-        if basis == 'incoming':
-            translation_type = 'sbesselh2'
-        elif basis == 'outgoing':
-            translation_type = 'sbesselh1'
-        elif basis == 'regular':
-            translation_type = 'sbesselj'
+        hash_basis_type = {'incoming': 'sbesselh2', 'outgoing': 'sbesselh1', 'regular': 'sbesselj'}
+        translation_type = hash_basis_type[basis]
         A, B, _ = translation(n_max, z, function_type=translation_type)
         return A, B
     if isinstance(z, np.ndarray):
         z = z[0] if z.size == 1 else z
-    
     beam.dz = beam.dz + np.abs(z)
     z = z * beam.k_m / 2 / np.pi
     if isinstance(z, np.ndarray):
@@ -46,10 +42,10 @@ def translate_xyz(beam, position, n_max=100):
     elif len(position.shape) == 1:
         r, t, p = xyz2rtp(x=position[0],y=position[1], z=position[2])
         rtp = np.array([[r, t, p]]).T
+    end = time.time()
     return translate_rtp(beam, rtp, n_max=n_max)[0]
     
 def translate_rtp(beam, position, n_max=100):
-
     if n_max.size == 1:
         o_n_max = n_max
     elif n_max.size == 2:
@@ -69,14 +65,19 @@ def translate_rtp(beam, position, n_max=100):
         return beam, A, B, D
     else:
         d_n_max = max(o_n_max, beam.n_max)
+#        print(combined_index(d_n_max, d_n_max), d_n_max)
         D = np.eye(combined_index(d_n_max, d_n_max))
         idx = abs(theta) == np.pi
+#        print(idx, np.where(theta==))
         r[idx] = -r[idx]
+        start = time.time()
         if r.size == 1:
             beam, A, B = translate_z(beam, r, n_max=o_n_max)
         else:
             beam, A, B = translate_z(beam, r, n_max=o_n_max)
+        end = time.time()
         return beam, A, B, D
+
 
 def translate_z(beam, z, n_max=None):
     if beam.translation_method == 'default':        

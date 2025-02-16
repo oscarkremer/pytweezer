@@ -3,7 +3,7 @@ from .t_matrix import TMatrixMie
 from pytweezer.utils import combined_index
 from numpy import matlib as matlib
 from copy import copy
-from numba import jit
+import time
 
 
 def force_torque(ibeam, sbeam, position=np.array([[],[],[]]), 
@@ -26,6 +26,7 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
         f = np.zeros((3, n_locations, n_beams))
         t = np.zeros((3, n_locations, n_beams))
         s = np.zeros((3, n_locations, n_beams))
+        total_time = 0
         for i in range(n_locations):
             if position.size:
                 if n_positions == 1:
@@ -41,7 +42,11 @@ def force_torque(ibeam, sbeam, position=np.array([[],[],[]]),
                     aux_rotation = rotation[:,i]
             else:
                 aux_rotation = np.array([[],[],[]])
+            start = time.time()
             s_beam, t_beam = ibeam.scatter(T, position=aux_position, rotation=aux_rotation)
+            end = time.time()
+            part_time = end-start
+            total_time+=part_time
             if coherent:
                 sbeam = s_beam.merge_beams()
                 tbeam = t_beam.merge_beams()

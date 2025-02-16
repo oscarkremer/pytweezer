@@ -21,7 +21,7 @@ test_environment: ##Run verification step for requisites
 
 update: ##Update method to change dependences.
 	@echo "---> Updating dependencies"
-	@conda env update -q -f enviroenment.yml
+	@conda env update -q -f environment.yml
 
 set:
 	@python setup.py install
@@ -43,3 +43,6 @@ help:	## Help method to list all available commands.
 clean:	## Method for removing cached and .pyc or .pyo files.
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+
+upload:
+	python -m twine upload dist/*

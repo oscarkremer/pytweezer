@@ -4,6 +4,7 @@ from pytweezer.utils import combined_index, translate_z, xyz2rtp
 from .translation import translate_xyz
 from scipy.sparse import csr_matrix
 from copy import copy
+import time
 
 class Beam:
     def __init__(self, a, b, basis, beam_type, k_m=2*np.pi, omega=2*np.pi, dz=0):
@@ -105,7 +106,10 @@ class Beam:
                     t_matrix.set_type('scattered')
                     t_matrix.set_n_max(np.array([max_n_max1, max_n_max2]))
                 #checked until here
+
                 beam = translate_xyz(copy(self), position, n_max=max_n_max2+1)
+            start = time.time()
+
             r_beam = copy(beam)
             if rotation.size:                            
                 r_beam, D = r_beam.rotate(rotation, n_max=max_n_max1)
@@ -131,6 +135,7 @@ class Beam:
                 return NotImplemented
             else:
                 raise ValueError('Unrecognized T-matrix type')
+            end = time.time()
             return s_beam, beam
 
     def set_basis(self, basis):
