@@ -1,3 +1,10 @@
+from .t_matrix import TMatrix
+
+class TMatrixDda(Tmatrix):
+
+    def __init__(self):
+
+
 '''
 classdef TmatrixDda < ott.Tmatrix
 % Constructs a T-matrix using discrete dipole approximation.
